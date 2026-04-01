@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sign Up | Coinzara</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0E1A; color: #EAECEF; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .container { max-width: 500px; width: 100%; background: #1E232C; border-radius: 16px; padding: 32px; border: 1px solid #2B3139; }
+        h1 { font-size: 1.75rem; margin-bottom: 8px; }
+        .subtitle { color: #848E9C; font-size: 0.85rem; margin-bottom: 24px; }
+        input, select { width: 100%; padding: 12px 16px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; font-size: 0.9rem; margin-bottom: 16px; }
+        input:focus, select:focus { outline: none; border-color: #F0B90B; }
+        button { width: 100%; background: #F0B90B; color: #0B0E1A; border: none; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; }
+        .password-strength { height: 4px; margin-top: -12px; margin-bottom: 16px; border-radius: 2px; transition: 0.3s; }
+        .weak { background: #F6465D; width: 33%; }
+        .medium { background: #F0B90B; width: 66%; }
+        .strong { background: #0ECB81; width: 100%; }
+        .error { color: #F6465D; font-size: 0.8rem; margin-bottom: 12px; }
+        .success { color: #0ECB81; text-align: center; margin-top: 16px; }
+        .login-link { text-align: center; margin-top: 24px; font-size: 0.85rem; color: #848E9C; }
+        .login-link a { color: #F0B90B; text-decoration: none; }
+        .disclaimer { background: #131722; border-left: 3px solid #F0B90B; padding: 12px; border-radius: 8px; font-size: 0.75rem; color: #848E9C; margin-bottom: 16px; }
+        .password-requirement { font-size: 0.7rem; color: #848E9C; margin-top: -12px; margin-bottom: 16px; }
+        .referral-note { font-size: 0.7rem; color: #0ECB81; margin-top: -12px; margin-bottom: 16px; }
+        .footer-note { text-align: center; margin-top: 32px; color: #848E9C; font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Create Account</h1>
+        <div class="subtitle">Join Coinzara and start AI-powered trading</div>
+        
+        <form id="signupForm">
+            <input type="text" id="fullName" placeholder="Full Legal Name" required>
+            <input type="email" id="email" placeholder="Email Address" required>
+            <select id="country" required>
+                <option value="">Select Country</option>
+                <option value="United States">United States</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option>
+                <option value="Nigeria">Nigeria</option>
+                <option value="India">India</option>
+                <option value="Germany">Germany</option>
+                <option value="France">France</option>
+                <option value="Singapore">Singapore</option>
+                <option value="Other">Other</option>
+            </select>
+            <input type="password" id="password" placeholder="Password" required>
+            <div class="password-strength" id="strengthBar"></div>
+            <div class="password-requirement">Minimum 8 characters with uppercase, lowercase, and number</div>
+            <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+            <input type="text" id="referralCode" placeholder="Referral Code (Optional)">
+            <div class="referral-note">Enter a friend's referral code to earn bonus on first deposit</div>
+            <div class="disclaimer"><strong>Security Question</strong><br>This will be used to reset your password if you forget it. Store your answer safely.</div>
+            <select id="securityQ1" required>
+                <option value="">Select Security Question</option>
+                <option>What is your favorite pet's name?</option>
+                <option>What is your favorite movie?</option>
+                <option>What is your mother's maiden name?</option>
+                <option>What was your first car?</option>
+                <option>What city were you born in?</option>
+            </select>
+            <input type="text" id="securityA1" placeholder="Your Answer" required>
+            <button type="submit">Sign Up</button>
+        </form>
+        
+        <div class="login-link">Already have an account? <a href="login.html">Log in</a></div>
+        <div id="message"></div>
+        <div class="footer-note">&copy; 2026 Coinzara.org</div>
+    </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const strengthBar = document.getElementById('strengthBar');
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.length >= 12) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            return strength;
+        }
+        passwordInput.addEventListener('input', function() {
+            const val = this.value;
+            strengthBar.className = 'password-strength';
+            if (val.length === 0) return;
+            const strength = checkPasswordStrength(val);
+            if (strength <= 2) strengthBar.classList.add('weak');
+            else if (strength <= 4) strengthBar.classList.add('medium');
+            else strengthBar.classList.add('strong');
+        });
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            if (password.length < 8) {
+                document.getElementById('message').innerHTML = '<div class="error">Password must be at least 8 characters</div>';
+                return;
+            }
+            if (password !== confirm) {
+                document.getElementById('message').innerHTML = '<div class="error">Passwords do not match</div>';
+                return;
+            }
+            const data = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                country: document.getElementById('country').value,
+                password: password,
+                securityQ1: document.getElementById('securityQ1').value,
+                securityA1: document.getElementById('securityA1').value,
+                referralCode: document.getElementById('referralCode').value
+            };
+            const res = await fetch('/api/signup', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                document.getElementById('message').innerHTML = '<div class="success">Account created. Redirecting...</div>';
+                setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+            } else {
+                document.getElementById('message').innerHTML = `<div class="error">${result.error}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>
