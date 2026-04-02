@@ -342,6 +342,7 @@ app.post('/api/admin/add-withdrawal', async (req, res) => {
   await user.save();
   res.json({ success: true, newBalance: user.balance });
 });
+
 // ========== ADMIN - UPDATE AI PROFIT ==========
 app.post('/api/admin/update-ai-profit', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiProfit } = req.body;
@@ -375,14 +376,17 @@ app.post('/api/admin/delete-user', async (req, res) => {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const user = await User.findOneAndDelete({ email: userEmail });
+  const user = await User.findOne({ email: userEmail });
   if (!user) {
     return res.json({ success: false, error: 'User not found' });
   }
   
+  // Delete user's chat messages
+  await ChatMessage.deleteMany({ userId: user._id });
+  
+  const result = await User.findOneAndDelete({ email: userEmail });
   res.json({ success: true, message: 'User deleted successfully' });
 });
-
 // ========== ADMIN - GET USER TRANSACTIONS ==========
 app.get('/api/admin/user-transactions', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.query;
@@ -505,6 +509,18 @@ app.post('/api/admin/reject-withdrawal', async (req, res) => {
   await request.save();
   
   res.json({ success: true, message: 'Withdrawal rejected' });
+});
+
+// ========== ADMIN - DELETE CONVERSATION ==========
+app.post('/api/admin/delete-conversation', async (req, res) => {
+  const { adminEmail, adminPassword, userId } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const result = await ChatMessage.deleteMany({ userId: userId });
+  res.json({ success: true, deletedCount: result.deletedCount });
 });
 
 // ========== USER - REQUEST WITHDRAWAL ==========
