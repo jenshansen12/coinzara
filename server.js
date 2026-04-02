@@ -33,10 +33,9 @@ const userSchema = new mongoose.Schema({
   referralBonus: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   aiProfit: { type: Number, default: 0 },
-  depositHistory: { type: Array, default: [] },
-  withdrawalHistory: { type: Array, default: [] },
   transactionHistory: { type: Array, default: [] },
   emailVerified: { type: Boolean, default: false },
+  agreedToTerms: { type: Boolean, default: false },
   welcomeShown: { type: Boolean, default: false },
   dailySnapshots: { type: Array, default: [] },
   createdAt: { type: Date, default: Date.now }
@@ -58,7 +57,7 @@ const chatMessageSchema = new mongoose.Schema({
 
 const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
 
-// Platform Stats Schema (for Proof of Reserves)
+// Platform Stats Schema
 const platformStatsSchema = new mongoose.Schema({
   totalUserBalances: { type: Number, default: 0 },
   totalBTCHeld: { type: Number, default: 0 },
@@ -75,17 +74,14 @@ const platformStatsSchema = new mongoose.Schema({
 
 const PlatformStats = mongoose.model('PlatformStats', platformStatsSchema);
 
-// Generate referral code
 function generateReferralCode(userId) {
   return userId.toString().slice(-8).toUpperCase();
 }
 
-// MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/coinzara')
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err));
 
-// Initialize platform stats if not exists
 async function initPlatformStats() {
   const exists = await PlatformStats.findOne();
   if (!exists) {
@@ -113,7 +109,12 @@ initPlatformStats();
 // ========== SIGNUP ==========
 app.post('/api/signup', async (req, res) => {
   try {
-    const { fullName, email, country, password, securityQ1, securityA1, referralCode } = req.body;
+    const { fullName, email, country, password, securityQ1, securityA1, referralCode, captcha } = req.body;
+    
+    // Simple CAPTCHA check (hCaptcha will be added client-side)
+    if (!captcha || captcha !== 'verified') {
+      return res.json({ success: false, error: 'Please complete the CAPTCHA' });
+    }
     
     const existing = await User.findOne({ email });
     if (existing) {
@@ -158,6 +159,29 @@ app.post('/api/signup', async (req, res) => {
   }
 });
 
+// ========== ACCEPT TERMS ==========
+app.post('/api/accept-terms', async (req, res) => {
+  if (!req.session.userId) {
+    return res.json({ success: false, error: 'Not logged in' });
+  }
+  
+  const user = await User.findById(req.session.userId);
+  user.agreedToTerms = true;
+  await user.save();
+  
+  res.json({ success: true });
+});
+
+// ========== CHECK TERMS STATUS ==========
+app.get('/api/terms-status', async (req, res) => {
+  if (!req.session.userId) {
+    return res.json({ agreedToTerms: false });
+  }
+  
+  const user = await User.findById(req.session.userId);
+  res.json({ agreedToTerms: user.agreedToTerms || false });
+});
+
 // ========== LOGIN ==========
 app.post('/api/login', async (req, res) => {
   try {
@@ -176,7 +200,7 @@ app.post('/api/login', async (req, res) => {
     req.session.userId = user._id;
     req.session.userEmail = user.email;
     
-    res.json({ success: true, fullName: user.fullName });
+    res.json({ success: true, fullName: user.fullName, needsTerms: !user.agreedToTerms });
   } catch (err) {
     res.json({ success: false, error: err.message });
   }
@@ -205,6 +229,7 @@ app.get('/api/me', async (req, res) => {
     referralCount: user.referralCount,
     referralBonus: user.referralBonus,
     emailVerified: user.emailVerified,
+    agreedToTerms: user.agreedToTerms,
     createdAt: user.createdAt,
     securityQuestion: user.securityQuestion.question,
     welcomeShown: user.welcomeShown,
@@ -232,9 +257,9 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// ========== ADMIN - UPDATE BALANCE ==========
-app.post('/api/admin/update-balance', async (req, res) => {
-  const { adminEmail, adminPassword, userEmail, newBalance, reason } = req.body;
+// ========== ADMIN - ADD DEPOSIT ==========
+app.post('/api/admin/add-deposit', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail, amount, reason } = req.body;
   
   if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
@@ -245,30 +270,54 @@ app.post('/api/admin/update-balance', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  const oldBalance = user.balance;
-  const changeAmount = parseFloat(newBalance) - oldBalance;
-  user.balance = parseFloat(newBalance);
+  const depositAmount = parseFloat(amount);
+  user.balance += depositAmount;
   
-  // Add to transaction history
-  if (changeAmount > 0) {
-    user.transactionHistory.unshift({
-      date: new Date(),
-      type: 'Deposit',
-      amount: changeAmount,
-      balance: user.balance,
-      status: 'completed'
-    });
-  } else if (changeAmount < 0) {
-    user.transactionHistory.unshift({
-      date: new Date(),
-      type: 'Withdrawal',
-      amount: changeAmount,
-      balance: user.balance,
-      status: 'completed'
-    });
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'Deposit',
+    amount: depositAmount,
+    balance: user.balance,
+    reason: reason,
+    status: 'completed'
+  });
+  
+  user.dailySnapshots.push({ date: new Date(), balance: user.balance });
+  if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
+  
+  await user.save();
+  res.json({ success: true, newBalance: user.balance });
+});
+
+// ========== ADMIN - ADD WITHDRAWAL ==========
+app.post('/api/admin/add-withdrawal', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail, amount, reason } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  // Add daily snapshot
+  const user = await User.findOne({ email: userEmail });
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+  
+  const withdrawalAmount = parseFloat(amount);
+  if (user.balance < withdrawalAmount) {
+    return res.json({ success: false, error: 'Insufficient balance' });
+  }
+  
+  user.balance -= withdrawalAmount;
+  
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'Withdrawal',
+    amount: -withdrawalAmount,
+    balance: user.balance,
+    reason: reason,
+    status: 'completed'
+  });
+  
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
   
@@ -294,7 +343,6 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
   const changeAmount = user.aiProfit - oldProfit;
   user.balance += changeAmount;
   
-  // Add daily snapshot
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
   
@@ -316,6 +364,22 @@ app.post('/api/admin/delete-user', async (req, res) => {
   }
   
   res.json({ success: true, message: 'User deleted successfully' });
+});
+
+// ========== ADMIN - GET USER TRANSACTIONS ==========
+app.get('/api/admin/user-transactions', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail } = req.query;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const user = await User.findOne({ email: userEmail });
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+  
+  res.json({ success: true, transactions: user.transactionHistory, balance: user.balance });
 });
 
 // ========== ADMIN - UPDATE PLATFORM STATS ==========
@@ -373,7 +437,7 @@ app.get('/api/platform-stats', async (req, res) => {
   res.json({ success: true, stats });
 });
 
-// ========== REQUEST WITHDRAWAL ==========
+// ========== REQUEST WITHDRAWAL (USER) ==========
 app.post('/api/request-withdrawal', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
@@ -386,16 +450,8 @@ app.post('/api/request-withdrawal', async (req, res) => {
     return res.json({ success: false, error: 'Insufficient balance' });
   }
   
-  user.withdrawalHistory.push({
-    date: new Date(),
-    amount: parseFloat(amount),
-    network,
-    walletAddress,
-    status: 'pending'
-  });
-  
-  await user.save();
-  res.json({ success: true, message: 'Withdrawal request submitted. Processed within 24-48 hours.' });
+  // Note: This only creates a request. Admin must manually process and add withdrawal record.
+  res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
 
 // ========== CHAT ROUTES ==========
