@@ -21,7 +21,7 @@
         .footer { text-align: center; margin-top: 40px; color: #848E9C; font-size: 0.7rem; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
         .badge-referral { background: #0ECB8122; color: #0ECB81; }
-        .section-title { margin-top: 20px; margin-bottom: 10px; font-size: 1.1rem; color: #F0B90B; }
+        label { display: block; color: #848E9C; font-size: 0.75rem; margin-bottom: 4px; }
         @media (max-width: 768px) { th, td { padding: 6px 4px; font-size: 0.65rem; } }
     </style>
 </head>
@@ -31,25 +31,36 @@
         <div id="adminLogin" class="login-box"><h3>Administrator Access</h3><input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org"><input type="password" id="adminPassword" placeholder="Admin Password"><button onclick="adminLogin()">Login</button><div id="loginMsg"></div></div>
         
         <div id="adminPanel" style="display:none;">
-            <div class="admin-box"><h3>Add Deposit</h3><input type="email" id="depositEmail" placeholder="User Email"><input type="number" id="depositAmount" placeholder="Deposit Amount (USD)"><input type="text" id="depositReason" placeholder="Reason (e.g., BTC Deposit)"><button onclick="addDeposit()">Add Deposit</button><div id="depositMsg"></div></div>
+            <div class="admin-box"><h3>Add Deposit</h3><label>User Email</label><input type="email" id="depositEmail" placeholder="User Email"><label>Deposit Amount (USD)</label><input type="number" id="depositAmount" placeholder="Deposit Amount (USD)"><label>Reason</label><input type="text" id="depositReason" placeholder="Reason (e.g., BTC Deposit)"><button onclick="addDeposit()">Add Deposit</button><div id="depositMsg"></div></div>
             
-            <div class="admin-box"><h3>Add Withdrawal</h3><input type="email" id="withdrawalEmail" placeholder="User Email"><input type="number" id="withdrawalAmount" placeholder="Withdrawal Amount (USD)"><input type="text" id="withdrawalReason" placeholder="Reason (e.g., BTC Withdrawal)"><button onclick="addWithdrawal()">Add Withdrawal</button><div id="withdrawalMsg"></div></div>
+            <div class="admin-box"><h3>Add Withdrawal</h3><label>User Email</label><input type="email" id="withdrawalEmail" placeholder="User Email"><label>Withdrawal Amount (USD)</label><input type="number" id="withdrawalAmount" placeholder="Withdrawal Amount (USD)"><label>Reason</label><input type="text" id="withdrawalReason" placeholder="Reason (e.g., BTC Withdrawal)"><button onclick="addWithdrawal()">Add Withdrawal</button><div id="withdrawalMsg"></div></div>
             
-            <div class="admin-box"><h3>Update AI Profit</h3><input type="email" id="aiUserEmail" placeholder="User Email"><input type="number" id="aiProfitAmount" placeholder="AI Profit Amount (USD)"><button onclick="updateAiProfit()">Update AI Profit</button><div id="aiProfitMsg"></div></div>
+            <div class="admin-box"><h3>Update AI Profit</h3><label>User Email</label><input type="email" id="aiUserEmail" placeholder="User Email"><label>AI Profit Amount (USD)</label><input type="number" id="aiProfitAmount" placeholder="AI Profit Amount (USD)"><button onclick="updateAiProfit()">Update AI Profit</button><div id="aiProfitMsg"></div></div>
             
-            <div class="admin-box"><h3>Delete User Account</h3><input type="email" id="deleteUserEmail" placeholder="User Email"><button onclick="deleteUser()" style="background:#F6465D; color:white;">Delete User Permanently</button><div id="deleteMsg"></div></div>
+            <div class="admin-box"><h3>Delete User Account</h3><label>User Email</label><input type="email" id="deleteUserEmail" placeholder="User Email"><button onclick="deleteUser()" style="background:#F6465D; color:white;">Delete User Permanently</button><div id="deleteMsg"></div></div>
             
-            <div class="admin-box"><h3>View User Transactions</h3><input type="email" id="txUserEmail" placeholder="User Email"><button onclick="loadUserTransactions()">Load Transaction History</button><div id="userTransactionsList"></div></div>
+            <div class="admin-box"><h3>View User Transactions</h3><label>User Email</label><input type="email" id="txUserEmail" placeholder="User Email"><button onclick="loadUserTransactions()">Load Transaction History</button><div id="userTransactionsList"></div></div>
+            
+            <div class="admin-box"><h3>User Account Details (For Password Reset)</h3><label>User Email</label><input type="email" id="resetUserEmail" placeholder="User Email"><button onclick="loadUserDetails()">Load User Details</button><div id="userDetailsContainer"></div></div>
             
             <div class="admin-box"><h3>Platform Stats (Proof of Reserves)</h3>
+                <label>Total User Balances (USD)</label>
                 <input type="number" id="totalUserBalances" placeholder="Total User Balances (USD)">
+                <label>Total BTC Held</label>
                 <input type="number" id="totalBTCHeld" placeholder="Total BTC Held">
+                <label>Total ETH Held</label>
                 <input type="number" id="totalETHHeld" placeholder="Total ETH Held">
+                <label>Total BNB Held</label>
                 <input type="number" id="totalBNBHeld" placeholder="Total BNB Held">
+                <label>Total SOL Held</label>
                 <input type="number" id="totalSOLHeld" placeholder="Total SOL Held">
+                <label>Total TRON Held</label>
                 <input type="number" id="totalTRONHeld" placeholder="Total TRON Held">
+                <label>AI Trading Volume ($)</label>
                 <input type="number" id="aiTradingVolume" placeholder="AI Trading Volume">
+                <label>Total Trades Count</label>
                 <input type="number" id="totalTrades" placeholder="Total Trades Count">
+                <label>Monthly Return (%)</label>
                 <input type="number" id="monthlyReturn" placeholder="Monthly Return %">
                 <button onclick="updatePlatformStats()">Update Platform Stats</button>
                 <div id="statsMsg"></div>
@@ -89,6 +100,7 @@
             const reason = document.getElementById('depositReason').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail || !amount) { alert('Please fill user email and amount'); return; }
             const res = await fetch('/api/admin/add-deposit', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
@@ -97,6 +109,9 @@
             if (data.success) {
                 document.getElementById('depositMsg').innerHTML = `<div class="success">Deposit added! New balance: $${data.newBalance}</div>`;
                 loadUsers();
+                document.getElementById('depositEmail').value = '';
+                document.getElementById('depositAmount').value = '';
+                document.getElementById('depositReason').value = '';
             } else {
                 document.getElementById('depositMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
@@ -108,6 +123,7 @@
             const reason = document.getElementById('withdrawalReason').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail || !amount) { alert('Please fill user email and amount'); return; }
             const res = await fetch('/api/admin/add-withdrawal', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
@@ -116,6 +132,9 @@
             if (data.success) {
                 document.getElementById('withdrawalMsg').innerHTML = `<div class="success">Withdrawal added! New balance: $${data.newBalance}</div>`;
                 loadUsers();
+                document.getElementById('withdrawalEmail').value = '';
+                document.getElementById('withdrawalAmount').value = '';
+                document.getElementById('withdrawalReason').value = '';
             } else {
                 document.getElementById('withdrawalMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
@@ -126,6 +145,7 @@
             const aiProfit = document.getElementById('aiProfitAmount').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail || aiProfit === '') { alert('Please fill user email and AI profit amount'); return; }
             const res = await fetch('/api/admin/update-ai-profit', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ adminEmail, adminPassword, userEmail, aiProfit: parseFloat(aiProfit) })
@@ -134,6 +154,8 @@
             if (data.success) {
                 document.getElementById('aiProfitMsg').innerHTML = `<div class="success">AI Profit updated to $${data.newAiProfit}. New balance: $${data.newBalance}</div>`;
                 loadUsers();
+                document.getElementById('aiUserEmail').value = '';
+                document.getElementById('aiProfitAmount').value = '';
             } else {
                 document.getElementById('aiProfitMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
@@ -143,6 +165,7 @@
             const userEmail = document.getElementById('deleteUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail) { alert('Please enter user email'); return; }
             if (!confirm(`Are you sure you want to delete user ${userEmail}? This cannot be undone.`)) return;
             const res = await fetch('/api/admin/delete-user', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -152,6 +175,7 @@
             if (data.success) {
                 document.getElementById('deleteMsg').innerHTML = `<div class="success">${data.message}</div>`;
                 loadUsers();
+                document.getElementById('deleteUserEmail').value = '';
             } else {
                 document.getElementById('deleteMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
@@ -161,6 +185,7 @@
             const userEmail = document.getElementById('txUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail) { alert('Please enter user email'); return; }
             const res = await fetch(`/api/admin/user-transactions?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
             const data = await res.json();
             if (data.success) {
@@ -183,6 +208,28 @@
                 container.innerHTML = html;
             } else {
                 document.getElementById('userTransactionsList').innerHTML = `<div class="error">${data.error}</div>`;
+            }
+        }
+        
+        async function loadUserDetails() {
+            const userEmail = document.getElementById('resetUserEmail').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail) { alert('Please enter user email'); return; }
+            const res = await fetch(`/api/admin/user-details?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('userDetailsContainer').innerHTML = `
+                    <div style="background: #2B3139; padding: 16px; border-radius: 8px; margin-top: 16px;">
+                        <p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p>
+                        <p><strong>Email:</strong> ${escapeHtml(data.user.email)}</p>
+                        <p><strong>Security Question:</strong> ${escapeHtml(data.user.securityQuestion.question)}</p>
+                        <p><strong>Account Created:</strong> ${new Date(data.user.createdAt).toLocaleDateString()}</p>
+                        <p style="color: #F0B90B; font-size: 0.75rem; margin-top: 8px;">To reset password: Ask user for their security question answer. If correct, use "Add Withdrawal" and "Add Deposit" to adjust balance as needed. For password change, user must sign up again.</p>
+                    </div>
+                `;
+            } else {
+                document.getElementById('userDetailsContainer').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
         
