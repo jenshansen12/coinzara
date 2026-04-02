@@ -30,6 +30,8 @@
         .send-reply { background: #F0B90B; color: #0B0E1A; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px; }
         .badge-unread { background: #F6465D; color: white; }
+        .delete-btn { background: #F6465D; color: white; padding: 4px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.7rem; margin-left: 10px; }
+        .delete-btn:hover { opacity: 0.8; }
         .refresh-btn { margin-bottom: 16px; }
         @media (max-width: 768px) { .conversation-header { flex-direction: column; align-items: flex-start; } }
     </style>
@@ -78,6 +80,28 @@
             }
         }
         
+        async function deleteConversation(userId, userName) {
+            if (!confirm(`Delete all messages from ${userName}? This cannot be undone.`)) return;
+            
+            const res = await fetch('/api/admin/delete-conversation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    adminEmail: currentAdminEmail,
+                    adminPassword: currentAdminPassword,
+                    userId: userId
+                })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                alert('Conversation deleted');
+                loadConversations();
+            } else {
+                alert('Failed to delete: ' + data.error);
+            }
+        }
+        
         function renderConversations() {
             const usersMap = new Map();
             
@@ -117,11 +141,12 @@
                         <div class="conversation-header" onclick="toggleConversation('conv-${user.userId}')">
                             <div>
                                 <span class="conversation-user">${escapeHtml(user.userName)}</span>
-                                <span class="badge ${hasUnreplied ? 'badge-unread' : ''}">${user.messages.length} messages</span>
+                                <span class="badge">${user.messages.length} messages</span>
                             </div>
                             <div>
                                 <span class="conversation-status ${statusClass}">${statusText}</span>
                                 <span style="font-size:0.7rem; color:#848E9C;">${escapeHtml(user.userEmail)}</span>
+                                <button class="delete-btn" onclick="event.stopPropagation(); deleteConversation('${user.userId}', '${escapeHtml(user.userName)}')">Delete</button>
                             </div>
                         </div>
                         <div class="conversation-body" id="conv-${user.userId}">
