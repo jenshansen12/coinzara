@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Crypto News | Coinzara</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0B0E1A;
+            color: #EAECEF;
+        }
+        .navbar {
+            background: #0B0E1A;
+            border-bottom: 1px solid #2B3139;
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #F0B90B, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .nav-links {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: #EAECEF;
+            text-decoration: none;
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 80px 20px 40px;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #848E9C;
+            margin-bottom: 32px;
+        }
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        .news-card {
+            background: #1E232C;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #2B3139;
+            transition: transform 0.2s;
+        }
+        .news-card:hover {
+            transform: translateY(-4px);
+        }
+        .news-card a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .news-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #2B3139, #1E232C);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        .news-content {
+            padding: 20px;
+        }
+        .news-source {
+            font-size: 0.7rem;
+            color: #F0B90B;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .news-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .news-summary {
+            font-size: 0.85rem;
+            color: #848E9C;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+        .news-date {
+            font-size: 0.7rem;
+            color: #848E9C;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #848E9C;
+        }
+        @media (max-width: 768px) {
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">COINZARA</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="deposit.html">Deposit</a>
+                <a href="withdraw.html">Withdraw</a>
+                <a href="learn.html">Learn</a>
+                <a href="news.html">News</a>
+                <a href="support.html">Support</a>
+                <a href="#" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Crypto News</h1>
+        <div class="subtitle">Latest updates from the cryptocurrency world</div>
+
+        <div id="newsContainer" class="news-grid">
+            <div class="loading">Loading latest crypto news...</div>
+        </div>
+    </div>
+
+    <script>
+        // RSS to JSON API (free, no API key needed)
+        // Using CoinDesk RSS feed
+        const RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed/';
+        
+        async function fetchCryptoNews() {
+            try {
+                const response = await fetch(RSS_URL);
+                const data = await response.json();
+                
+                if (data.status === 'ok' && data.items) {
+                    displayNews(data.items.slice(0, 24));
+                } else {
+                    displayFallbackNews();
+                }
+            } catch (error) {
+                console.error('Error fetching news:', error);
+                displayFallbackNews();
+            }
+        }
+        
+        function displayNews(items) {
+            const container = document.getElementById('newsContainer');
+            let html = '';
+            
+            items.forEach(item => {
+                // Get image from description or use default
+                let imageMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
+                let imageIcon = imageMatch ? '' : getIconForTitle(item.title);
+                
+                // Strip HTML from description
+                let description = item.description.replace(/<[^>]*>/g, '').substring(0, 150) + '...';
+                
+                html += `
+                    <div class="news-card">
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer">
+                            <div class="news-image">${imageIcon || '📰'}</div>
+                            <div class="news-content">
+                                <div class="news-source">${item.author || 'Crypto News'}</div>
+                                <div class="news-title">${escapeHtml(item.title)}</div>
+                                <div class="news-summary">${escapeHtml(description)}</div>
+                                <div class="news-date">${new Date(item.pubDate).toLocaleDateString()}</div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getIconForTitle(title) {
+            const titleLower = title.toLowerCase();
+            if (titleLower.includes('bitcoin') || titleLower.includes('btc')) return '₿';
+            if (titleLower.includes('ethereum') || titleLower.includes('eth')) return '⟠';
+            if (titleLower.includes('bnb') || titleLower.includes('binance')) return '🟡';
+            if (titleLower.includes('solana') || titleLower.includes('sol')) return '◎';
+            if (titleLower.includes('tron') || titleLower.includes('trx')) return '🔴';
+            return '📰';
+        }
+        
+        function displayFallbackNews() {
+            const sampleNews = [
+                { title: "Bitcoin Surges Past $70,000", summary: "BTC reaches new all-time high amid institutional demand.", source: "CoinDesk", date: "Today", icon: "₿" },
+                { title: "Ethereum Network Upgrade Complete", summary: "Gas fees reduced by 30% after successful mainnet upgrade.", source: "CoinTelegraph", date: "Today", icon: "⟠" },
+                { title: "BNB Chain Announces $100M Fund", summary: "New program to support DeFi and GameFi developers.", source: "CryptoSlate", date: "Yesterday", icon: "🟡" },
+                { title: "Solana Hits 1M Daily Active Users", summary: "Network activity reaches all-time high as adoption grows.", source: "The Block", date: "Yesterday", icon: "◎" },
+                { title: "Tron's USDT Supply Reaches $60B", summary: "TRC-20 USDT now dominates stablecoin market.", source: "Decrypt", date: "2 days ago", icon: "🔴" },
+                { title: "Crypto Market Cap Reaches $2.8T", summary: "Total market capitalization hits 2-year high.", source: "CoinMarketCap", date: "2 days ago", icon: "📊" },
+                { title: "New AI Trading Bot Launches", summary: "Advanced algorithms show 78% win rate in testing.", source: "Coinzara News", date: "3 days ago", icon: "🤖" },
+                { title: "Regulatory Clarity Boosts Adoption", summary: "New frameworks encourage institutional investment.", source: "Bloomberg Crypto", date: "3 days ago", icon: "⚖️" }
+            ];
+            
+            const container = document.getElementById('newsContainer');
+            let html = '';
+            
+            sampleNews.forEach(news => {
+                html += `
+                    <div class="news-card">
+                        <div class="news-image">${news.icon}</div>
+                        <div class="news-content">
+                            <div class="news-source">${news.source}</div>
+                            <div class="news-title">${news.title}</div>
+                            <div class="news-summary">${news.summary}</div>
+                            <div class="news-date">${news.date}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('/api/logout', { method: 'POST' });
+            window.location.href = 'login.html';
+        });
+        
+        // Load news
+        fetchCryptoNews();
+    </script>
+</body>
+</html>

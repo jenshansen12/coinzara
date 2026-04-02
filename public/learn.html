@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Learn | Coinzara</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0E1A; color: #EAECEF; }
+        .navbar { background: #0B0E1A; border-bottom: 1px solid #2B3139; padding: 16px; position: sticky; top: 0; z-index: 100; }
+        .navbar-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; max-width: 1200px; margin: 0 auto; }
+        .logo { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #F0B90B, #764ba2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+        .nav-links a { color: #EAECEF; text-decoration: none; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 80px 20px 40px; }
+        h1 { font-size: 2rem; margin-bottom: 8px; }
+        .subtitle { color: #848E9C; margin-bottom: 40px; }
+        .section { background: #1E232C; border-radius: 16px; padding: 28px; margin-bottom: 24px; border: 1px solid #2B3139; }
+        .section h2 { color: #F0B90B; margin-bottom: 16px; font-size: 1.4rem; }
+        .section p { color: #EAECEF; line-height: 1.6; margin-bottom: 16px; }
+        .section ul { margin-left: 24px; color: #848E9C; line-height: 1.8; }
+        .glossary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .glossary-card { background: #2B3139; padding: 16px; border-radius: 12px; }
+        .glossary-card h4 { color: #F0B90B; margin-bottom: 8px; }
+        .glossary-card p { font-size: 0.85rem; color: #848E9C; margin: 0; }
+        .tip-box { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 16px; border-radius: 8px; margin-top: 16px; }
+        footer { text-align: center; padding: 24px; border-top: 1px solid #2B3139; color: #848E9C; font-size: 0.7rem; margin-top: 40px; }
+        .footer-links { display: flex; justify-content: center; gap: 20px; margin-top: 8px; flex-wrap: wrap; }
+        .footer-links a { color: #848E9C; text-decoration: none; }
+        .footer-links a:hover { color: #F0B90B; }
+        @media (max-width: 768px) { .container { padding: 70px 16px 32px; } .section { padding: 20px; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">COINZARA</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="deposit.html">Deposit</a>
+                <a href="withdraw.html">Withdraw</a>
+                <a href="learn.html">Learn</a>
+                <a href="news.html">News</a>
+                <a href="transaction-history.html">History</a>
+                <a href="settings.html">Settings</a>
+                <a href="support.html">Support</a>
+                <a href="#" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Learn Crypto Trading</h1>
+        <div class="subtitle">Your guide to understanding cryptocurrency and AI trading</div>
+        <div class="section"><h2>What is Cryptocurrency?</h2><p>Cryptocurrency is digital money that operates on blockchain technology - a decentralized network that records and verifies transactions without banks or central authorities.</p><p>Popular cryptocurrencies include Bitcoin (BTC), Ethereum (ETH), BNB, Solana (SOL), and Tron (TRX).</p><div class="tip-box"><strong>Key Insight:</strong> Cryptocurrencies are volatile but offer opportunities for significant returns through strategic trading.</div></div>
+        <div class="section"><h2>How Our AI Trading Bot Works</h2><p>Coinzara's AI trading engine uses advanced algorithms to analyze market data 24/7. The bot monitors price movements, technical indicators, and executes trades automatically on your behalf.</p><ul><li>Analyzes 15+ technical indicators in real-time</li><li>Executes trades based on proven strategies</li><li>Operates continuously without human intervention</li><li>Adjusts to market conditions dynamically</li></ul><div class="tip-box"><strong>How It Works:</strong> The AI bot trades for you while you sleep. Your profits are reflected in your balance automatically.</div></div>
+        <div class="section"><h2>Getting Started with Coinzara</h2><ul><li><strong>Step 1:</strong> Create your account and set up security questions</li><li><strong>Step 2:</strong> Deposit funds using any supported network</li><li><strong>Step 3:</strong> Our AI bot begins trading immediately</li><li><strong>Step 4:</strong> Track your portfolio growth on the dashboard</li><li><strong>Step 5:</strong> Withdraw profits anytime within 24-48 hours</li></ul></div>
+        <div class="section"><h2>Safety & Security Tips</h2><ul><li>Never share your password or security question answers</li><li>Always double-check deposit addresses before sending crypto</li><li>Only withdraw to wallets you control</li><li>Contact support if you notice any suspicious activity</li></ul></div>
+        <div class="section"><h2>Crypto Glossary</h2><div class="glossary-grid"><div class="glossary-card"><h4>Blockchain</h4><p>A distributed digital ledger that records transactions across many computers</p></div><div class="glossary-card"><h4>Altcoin</h4><p>Any cryptocurrency other than Bitcoin</p></div><div class="glossary-card"><h4>HODL</h4><p>Hold On for Dear Life - a strategy of holding crypto long-term</p></div><div class="glossary-card"><h4>Market Cap</h4><p>Total value of a cryptocurrency = price multiplied by circulating supply</p></div><div class="glossary-card"><h4>Volatility</h4><p>Degree of price fluctuation - high in crypto markets</p></div><div class="glossary-card"><h4>Whale</h4><p>An investor with large amounts of cryptocurrency</p></div></div></div>
+        <div class="section"><h2>Frequently Asked Questions</h2><ul><li><strong>Is there a minimum deposit?</strong> No - deposit any amount you're comfortable with.</li><li><strong>How fast are withdrawals?</strong> Processed within 24-48 hours.</li><li><strong>Can I lose money?</strong> Trading involves risk. Our AI bot aims for consistent profits.</li><li><strong>Is my data secure?</strong> Yes - all data is encrypted and stored securely.</li><li><strong>How do I earn referral bonuses?</strong> Share your unique referral code. When friends sign up, you earn bonus credits.</li></ul></div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Coinzara.org - AI Crypto Trading Platform</p>
+        <div class="footer-links">
+            <a href="terms.html">Terms & Conditions</a>
+            <a href="proof-of-reserves.html">Proof of Reserves</a>
+            <a href="support.html">Support</a>
+        </div>
+    </footer>
+
+    <script> document.getElementById('logoutBtn').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; }); </script>
+</body>
+</html>

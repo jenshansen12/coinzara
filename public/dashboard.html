@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dashboard | Coinzara</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0E1A; color: #EAECEF; }
+        .navbar { background: #0B0E1A; border-bottom: 1px solid #2B3139; padding: 16px; position: sticky; top: 0; z-index: 100; }
+        .navbar-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; max-width: 1400px; margin: 0 auto; }
+        .logo { font-size: 1.5rem; font-weight: 700; background: linear-gradient(135deg, #F0B90B, #764ba2); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .nav-links { display: flex; gap: 16px; flex-wrap: wrap; }
+        .nav-links a { color: #EAECEF; text-decoration: none; font-size: 0.85rem; padding: 6px 12px; border-radius: 6px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 80px 20px 40px; display: grid; grid-template-columns: 1fr 320px; gap: 24px; }
+        .main-content { min-width: 0; }
+        .sidebar { min-width: 0; }
+        .welcome-card { background: linear-gradient(135deg, #1E232C, #131722); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid #2B3139; }
+        .welcome-card h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; }
+        .welcome-card p { color: #848E9C; font-size: 0.9rem; }
+        .balance-card { background: #1E232C; border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid #2B3139; text-align: center; }
+        .balance-label { font-size: 0.85rem; color: #848E9C; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-amount { font-size: 3rem; font-weight: 700; color: #F0B90B; margin: 8px 0; }
+        .ai-profit { font-size: 0.9rem; color: #0ECB81; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #1E232C; border-radius: 12px; padding: 16px; border: 1px solid #2B3139; text-align: center; }
+        .stat-label { font-size: 0.7rem; color: #848E9C; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 1.3rem; font-weight: 600; margin-top: 8px; }
+        .action-buttons { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+        .action-btn { flex: 1; text-align: center; padding: 14px; border-radius: 8px; text-decoration: none; font-weight: 600; transition: opacity 0.2s; }
+        .deposit-btn { background: #0ECB81; color: #0B0E1A; }
+        .withdraw-btn { background: #F6465D; color: white; }
+        .section { background: #1E232C; border-radius: 16px; padding: 20px; border: 1px solid #2B3139; margin-bottom: 24px; }
+        .section h3 { margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #2B3139; font-weight: 600; }
+        .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2B3139; font-size: 0.9rem; }
+        .info-row:last-child { border-bottom: none; }
+        .copy-btn { background: #2B3139; color: #F0B90B; border: none; padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; }
+        .trustpilot-card { background: #1E232C; border-radius: 16px; padding: 20px; border: 1px solid #2B3139; margin-bottom: 24px; }
+        .trustpilot-card h4 { margin-bottom: 12px; color: #F0B90B; }
+        .stars { color: #F0B90B; font-size: 1.2rem; margin-bottom: 8px; }
+        .rating-score { font-size: 1.5rem; font-weight: 700; }
+        .review-card { background: #2B3139; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .review-stars { color: #F0B90B; font-size: 0.8rem; margin-bottom: 8px; }
+        .review-text { font-size: 0.85rem; line-height: 1.4; margin-bottom: 8px; }
+        .review-author { font-size: 0.7rem; color: #848E9C; }
+        .progress-bar { background: #2B3139; border-radius: 4px; height: 8px; margin: 8px 0; }
+        .progress-fill { background: #F0B90B; border-radius: 4px; height: 100%; }
+        .tradingview-widget { margin-top: 16px; }
+        .security-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 500; }
+        .badge-hacken { background: #0ECB8122; color: #0ECB81; border: 1px solid #0ECB81; }
+        .badge-cold { background: #F0B90B22; color: #F0B90B; border: 1px solid #F0B90B; }
+        .badge-insurance { background: #764ba222; color: #764ba2; border: 1px solid #764ba2; }
+        .chart-container { background: #1E232C; border-radius: 16px; padding: 20px; border: 1px solid #2B3139; margin-bottom: 24px; }
+        .chart-container h3 { margin-bottom: 16px; font-weight: 600; }
+        canvas { width: 100%; height: 200px; }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo">COINZARA</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="deposit.html">Deposit</a>
+                <a href="withdraw.html">Withdraw</a>
+                <a href="learn.html">Learn</a>
+                <a href="news.html">News</a>
+                <a href="transaction-history.html">History</a>
+                <a href="settings.html">Settings</a>
+                <a href="support.html">Support</a>
+                <a href="#" id="logoutBtn">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="welcome-card">
+                <h2>Welcome back, <span id="userName">Trader</span></h2>
+                <p>AI trading engine active | 24/7 automated execution</p>
+            </div>
+            <div class="balance-card">
+                <div class="balance-label">Total Portfolio Value</div>
+                <div class="balance-amount">$<span id="balance">0.00</span></div>
+                <div class="ai-profit">AI Generated Profit: $<span id="aiProfit">0.00</span></div>
+            </div>
+            <div class="action-buttons">
+                <a href="deposit.html" class="action-btn deposit-btn">Deposit Funds</a>
+                <a href="withdraw.html" class="action-btn withdraw-btn">Withdraw Funds</a>
+            </div>
+            
+            <div class="chart-container">
+                <h3>30-Day Portfolio Performance</h3>
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+                <div style="margin-top: 12px; text-align: center; font-size: 0.8rem; color: #0ECB81;">
+                    P&L: <span id="pnlPercent">0</span>%
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">AI Status</div><div class="stat-value">Active</div></div>
+                <div class="stat-card"><div class="stat-label">Win Rate</div><div class="stat-value">78.4%</div></div>
+                <div class="stat-card"><div class="stat-label">Total Trades</div><div class="stat-value" id="totalTrades">10,247</div></div>
+                <div class="stat-card"><div class="stat-label">Monthly Return</div><div class="stat-value" id="monthlyReturn">+24.7%</div></div>
+            </div>
+            
+            <div class="section">
+                <h3>Live Market Data</h3>
+                <select id="chartSymbol">
+                    <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+                    <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+                    <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+                    <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+                    <option value="BINANCE:TRXUSDT">TRX/USDT</option>
+                </select>
+                <div id="tradingview-chart" class="tradingview-widget"></div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="section">
+                <h3>Account Info</h3>
+                <div class="info-row"><span>User ID</span><span><span id="userId">-</span> <button class="copy-btn" onclick="copyText('userId')">Copy</button></span></div>
+                <div class="info-row"><span>Referral Code</span><span><span id="referralCode">-</span> <button class="copy-btn" onclick="copyText('referralCode')">Copy</button></span></div>
+                <div class="info-row"><span>Friends Referred</span><span id="referralCount">0</span></div>
+                <div class="info-row"><span>Referral Bonus</span><span>$<span id="referralBonus">0</span></span></div>
+            </div>
+            
+            <div class="security-badges">
+                <span class="badge badge-hacken">Hacken Proof of Funds Verified</span>
+                <span class="badge badge-cold">Cold Storage: 95% Offline</span>
+                <span class="badge badge-insurance">Insurance Fund: Protected</span>
+            </div>
+            
+            <div class="trustpilot-card">
+                <h4>Trustpilot Reviews</h4>
+                <div class="stars">★★★★★</div>
+                <div><span class="rating-score">4.7</span> / 5</div>
+                <div style="font-size: 0.8rem; color: #848E9C;">Based on 8,234 reviews</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 84%"></div></div>
+                <div style="font-size: 0.75rem;">5-star: 84% (6,892)</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 10%; background: #0ECB81"></div></div>
+                <div style="font-size: 0.75rem;">4-star: 10% (823)</div>
+                <div class="progress-bar"><div class="progress-fill" style="width: 4%; background: #F0B90B"></div></div>
+                <div style="font-size: 0.75rem;">3-star: 4% (329)</div>
+            </div>
+            
+            <div class="trustpilot-card">
+                <h4>What Our Users Say</h4>
+                <div class="review-card"><div class="review-stars">★★★★★</div><div class="review-text">"The AI bot has been incredible. Started with $500, up 47% in 3 months."</div><div class="review-author">— Michael Chen</div></div>
+                <div class="review-card"><div class="review-stars">★★★★★</div><div class="review-text">"Finally a platform that actually delivers. AI trades while I sleep."</div><div class="review-author">— Sarah Johnson</div></div>
+                <div class="review-card"><div class="review-stars">★★★★☆</div><div class="review-text">"Up 28% this month alone. The bot's performance speaks for itself."</div><div class="review-author">— David Okonkwo</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Modal -->
+    <div id="welcomeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:#1E232C; max-width:400px; width:90%; border-radius:16px; padding:28px; text-align:center; border:1px solid #F0B90B;">
+            <h2 style="color:#F0B90B; margin-bottom:16px;">Welcome to Coinzara!</h2>
+            <p style="margin-bottom:16px; color:#848E9C;">Your AI trading journey starts here.</p>
+            <p style="margin-bottom:16px; color:#848E9C;">Deposit funds and our AI bot will start trading for you automatically.</p>
+            <p style="margin-bottom:24px; color:#848E9C;">Track your profits on the dashboard anytime.</p>
+            <button onclick="closeWelcomeModal()" style="width:auto; padding:10px 24px;">Get Started</button>
+        </div>
+    </div>
+
+    <script src="https://s3.tradingview.com/tv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let tvWidget = null;
+        let chart = null;
+        
+        function copyText(elementId) { const text = document.getElementById(elementId).innerText; navigator.clipboard.writeText(text); alert('Copied: ' + text); }
+        
+        function loadChart(symbol) { if (tvWidget) tvWidget.remove(); tvWidget = new TradingView.widget({ width: '100%', height: 450, symbol: symbol, interval: '60', timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en', container_id: 'tradingview-chart' }); }
+        
+        document.getElementById('chartSymbol').addEventListener('change', (e) => loadChart(e.target.value));
+        
+        function drawPerformanceChart(snapshots) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            const labels = snapshots.map(s => new Date(s.date).toLocaleDateString());
+            const data = snapshots.map(s => s.balance);
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Portfolio Value', data: data, borderColor: '#F0B90B', backgroundColor: 'rgba(240,185,11,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#EAECEF' } } }, scales: { y: { ticks: { color: '#EAECEF' }, grid: { color: '#2B3139' } }, x: { ticks: { color: '#EAECEF' }, grid: { color: '#2B3139' } } } } });
+            if (data.length >= 2) { const pnl = ((data[data.length-1] - data[0]) / data[0] * 100).toFixed(2); document.getElementById('pnlPercent').innerText = pnl; }
+        }
+        
+        async function loadUserData() {
+            const res = await fetch('/api/me');
+            const data = await res.json();
+            if (data.loggedIn) {
+                document.getElementById('userName').innerText = data.fullName.split(' ')[0];
+                document.getElementById('balance').innerText = data.balance.toFixed(2);
+                document.getElementById('aiProfit').innerText = data.aiProfit.toFixed(2);
+                document.getElementById('userId').innerText = data.userId;
+                document.getElementById('referralCode').innerText = data.referralCode || 'Generating...';
+                document.getElementById('referralCount').innerText = data.referralCount || 0;
+                document.getElementById('referralBonus').innerText = (data.referralBonus || 0).toFixed(2);
+                if (data.dailySnapshots && data.dailySnapshots.length > 0) { drawPerformanceChart(data.dailySnapshots); }
+                if (!data.welcomeShown) { document.getElementById('welcomeModal').style.display = 'flex'; fetch('/api/update-welcome', { method: 'POST' }); }
+            } else { window.location.href = 'login.html'; }
+        }
+        
+        async function loadPlatformStats() {
+            const res = await fetch('/api/platform-stats');
+            const data = await res.json();
+            if (data.success && data.stats) {
+                document.getElementById('totalTrades').innerText = data.stats.totalTrades.toLocaleString();
+                document.getElementById('monthlyReturn').innerText = `+${data.stats.monthlyReturn}%`;
+            }
+        }
+        
+        function closeWelcomeModal() { document.getElementById('welcomeModal').style.display = 'none'; }
+        
+        document.getElementById('logoutBtn').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; });
+        
+        loadUserData();
+        loadPlatformStats();
+        loadChart('BINANCE:BTCUSDT');
+    </script>
+</body>
+</html>
