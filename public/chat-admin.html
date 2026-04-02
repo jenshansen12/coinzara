@@ -7,42 +7,209 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0E1A; color: #EAECEF; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
         h1 { color: #F0B90B; margin-bottom: 20px; }
         .login-box, .admin-box { background: #1E232C; padding: 24px; border-radius: 16px; margin-bottom: 24px; border: 1px solid #2B3139; }
         input, textarea { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; margin-bottom: 16px; }
         button { background: #F0B90B; color: #0B0E1A; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
-        .message-card { background: #1E232C; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #2B3139; }
-        .message-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.8rem; color: #848E9C; flex-wrap: wrap; gap: 8px; }
-        .user-name { color: #F0B90B; font-weight: 600; }
-        .user-message { background: #2B3139; padding: 12px; border-radius: 8px; margin: 8px 0; }
-        .admin-reply { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 12px; border-radius: 8px; margin: 8px 0; }
-        .reply-input { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .reply-input textarea { flex: 1; margin-bottom: 0; }
-        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; }
-        .status-pending { background: #F6465D22; color: #F6465D; }
+        .conversation-card { background: #1E232C; border-radius: 12px; margin-bottom: 24px; border: 1px solid #2B3139; overflow: hidden; }
+        .conversation-header { background: #2B3139; padding: 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .conversation-header:hover { background: #3B4149; }
+        .conversation-user { font-weight: 600; color: #F0B90B; }
+        .conversation-status { font-size: 0.7rem; padding: 4px 12px; border-radius: 20px; }
+        .status-pending { background: #F0B90B22; color: #F0B90B; }
         .status-replied { background: #0ECB8122; color: #0ECB81; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab { background: #2B3139; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
-        .tab.active { background: #F0B90B; color: #0B0E1A; }
-        @media (max-width: 768px) { .reply-input { flex-direction: column; } }
+        .conversation-body { display: none; padding: 16px; border-top: 1px solid #2B3139; }
+        .conversation-body.open { display: block; }
+        .message-thread { max-height: 400px; overflow-y: auto; margin-bottom: 16px; }
+        .user-msg { background: #2B3139; padding: 12px; border-radius: 12px; margin-bottom: 12px; margin-left: 20px; }
+        .support-msg { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 12px; border-radius: 12px; margin-bottom: 12px; margin-right: 20px; }
+        .msg-time { font-size: 0.65rem; color: #848E9C; margin-top: 4px; }
+        .reply-area { margin-top: 16px; border-top: 1px solid #2B3139; padding-top: 16px; }
+        .reply-text { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; font-family: inherit; margin-bottom: 12px; resize: vertical; }
+        .send-reply { background: #F0B90B; color: #0B0E1A; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px; }
+        .badge-unread { background: #F6465D; color: white; }
+        .refresh-btn { margin-bottom: 16px; }
+        @media (max-width: 768px) { .conversation-header { flex-direction: column; align-items: flex-start; } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Support Admin Panel</h1>
-        <div id="adminLogin" class="login-box"><h3>Admin Login</h3><input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org"><input type="password" id="adminPassword" placeholder="Admin Password"><button onclick="adminLogin()">Login</button><div id="loginMsg"></div></div>
-        <div id="adminPanel" style="display:none;"><div class="tabs"><div class="tab active" onclick="showTab('pending')">Pending</div><div class="tab" onclick="showTab('all')">All Messages</div></div><div id="messagesList"></div></div>
+        <div id="adminLogin" class="login-box">
+            <h3>Admin Login</h3>
+            <input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org">
+            <input type="password" id="adminPassword" placeholder="Admin Password">
+            <button onclick="adminLogin()">Login</button>
+            <div id="loginMsg"></div>
+        </div>
+        
+        <div id="adminPanel" style="display:none;">
+            <button class="refresh-btn" onclick="loadConversations()">Refresh Conversations</button>
+            <div id="conversationsList"></div>
+        </div>
     </div>
+
     <script>
-        let currentTab = 'pending'; let allMessages = [];
-        async function adminLogin() { const email = document.getElementById('adminEmail').value; const password = document.getElementById('adminPassword').value; if (email === 'admin@coinzara.org' && password === '419123') { document.getElementById('adminLogin').style.display = 'none'; document.getElementById('adminPanel').style.display = 'block'; loadMessages(); } else { document.getElementById('loginMsg').innerHTML = '<div class="error" style="color:#F6465D;">Invalid credentials</div>'; } }
-        async function loadMessages() { const email = document.getElementById('adminEmail').value; const password = document.getElementById('adminPassword').value; const res = await fetch(`/api/admin/chat/messages?adminEmail=${email}&adminPassword=${password}`); const data = await res.json(); if (data.success) { allMessages = data.messages; renderMessages(); } }
-        function showTab(tab) { currentTab = tab; document.querySelectorAll('.tab').forEach(t => { if ((tab === 'pending' && t.innerText === 'Pending') || (tab === 'all' && t.innerText === 'All Messages')) t.classList.add('active'); else t.classList.remove('active'); }); renderMessages(); }
-        function renderMessages() { let filtered = allMessages; if (currentTab === 'pending') filtered = allMessages.filter(m => !m.isReplied); if (filtered.length === 0) { document.getElementById('messagesList').innerHTML = '<div class="message-card">No messages found</div>'; return; } let html = ''; filtered.forEach(msg => { html += `<div class="message-card"><div class="message-header"><span class="user-name">${escapeHtml(msg.userName)}</span><span>${new Date(msg.createdAt).toLocaleString()}</span><span class="status-badge ${msg.isReplied ? 'status-replied' : 'status-pending'}">${msg.isReplied ? 'Replied' : 'Pending'}</span></div><div><strong>Email:</strong> ${escapeHtml(msg.userEmail)}</div><div class="user-message"><strong>User:</strong> ${escapeHtml(msg.message)}</div>`; if (msg.reply) { html += `<div class="admin-reply"><strong>Support Agent:</strong> ${escapeHtml(msg.reply)}<br><small>${new Date(msg.repliedAt).toLocaleString()}</small></div>`; } if (!msg.isReplied) { html += `<div class="reply-input"><textarea id="reply-${msg._id}" rows="2" placeholder="Type your reply..."></textarea><button onclick="sendReply('${msg._id}')">Send Reply</button></div>`; } html += `</div>`; }); document.getElementById('messagesList').innerHTML = html; }
-        async function sendReply(messageId) { const reply = document.getElementById(`reply-${messageId}`).value; if (!reply.trim()) { alert('Please enter a reply'); return; } const email = document.getElementById('adminEmail').value; const password = document.getElementById('adminPassword').value; const res = await fetch('/api/admin/chat/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adminEmail: email, adminPassword: password, messageId, reply }) }); const data = await res.json(); if (data.success) { loadMessages(); } else { alert('Failed to send reply'); } }
-        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
-        setInterval(() => { if (document.getElementById('adminPanel').style.display === 'block') { loadMessages(); } }, 10000);
+        let allMessages = [];
+        let currentAdminEmail = '';
+        let currentAdminPassword = '';
+        
+        async function adminLogin() {
+            currentAdminEmail = document.getElementById('adminEmail').value;
+            currentAdminPassword = document.getElementById('adminPassword').value;
+            if (currentAdminEmail === 'admin@coinzara.org' && currentAdminPassword === '419123') {
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadConversations();
+                setInterval(loadConversations, 10000);
+            } else {
+                document.getElementById('loginMsg').innerHTML = '<div class="error" style="color:#F6465D;">Invalid credentials</div>';
+            }
+        }
+        
+        async function loadConversations() {
+            const res = await fetch(`/api/admin/chat/messages?adminEmail=${currentAdminEmail}&adminPassword=${currentAdminPassword}`);
+            const data = await res.json();
+            if (data.success) {
+                allMessages = data.messages;
+                renderConversations();
+            }
+        }
+        
+        function renderConversations() {
+            const usersMap = new Map();
+            
+            allMessages.forEach(msg => {
+                if (!usersMap.has(msg.userId)) {
+                    usersMap.set(msg.userId, {
+                        userId: msg.userId,
+                        userName: msg.userName,
+                        userEmail: msg.userEmail,
+                        messages: []
+                    });
+                }
+                usersMap.get(msg.userId).messages.push(msg);
+            });
+            
+            const users = Array.from(usersMap.values());
+            users.sort((a, b) => {
+                const aLatest = a.messages[a.messages.length - 1]?.createdAt || 0;
+                const bLatest = b.messages[b.messages.length - 1]?.createdAt || 0;
+                return new Date(bLatest) - new Date(aLatest);
+            });
+            
+            if (users.length === 0) {
+                document.getElementById('conversationsList').innerHTML = '<div class="admin-box">No conversations yet</div>';
+                return;
+            }
+            
+            let html = '';
+            users.forEach(user => {
+                const sortedMessages = user.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                const hasUnreplied = user.messages.some(m => !m.isReplied);
+                const statusClass = hasUnreplied ? 'status-pending' : 'status-replied';
+                const statusText = hasUnreplied ? 'Pending Reply' : 'Replied';
+                
+                html += `
+                    <div class="conversation-card">
+                        <div class="conversation-header" onclick="toggleConversation('conv-${user.userId}')">
+                            <div>
+                                <span class="conversation-user">${escapeHtml(user.userName)}</span>
+                                <span class="badge ${hasUnreplied ? 'badge-unread' : ''}">${user.messages.length} messages</span>
+                            </div>
+                            <div>
+                                <span class="conversation-status ${statusClass}">${statusText}</span>
+                                <span style="font-size:0.7rem; color:#848E9C;">${escapeHtml(user.userEmail)}</span>
+                            </div>
+                        </div>
+                        <div class="conversation-body" id="conv-${user.userId}">
+                            <div class="message-thread" id="thread-${user.userId}">
+                `;
+                
+                sortedMessages.forEach(msg => {
+                    html += `
+                        <div class="user-msg">
+                            <strong>${escapeHtml(msg.userName)}:</strong>
+                            <div>${escapeHtml(msg.message)}</div>
+                            <div class="msg-time">${new Date(msg.createdAt).toLocaleString()}</div>
+                        </div>
+                    `;
+                    if (msg.reply) {
+                        html += `
+                            <div class="support-msg">
+                                <strong>Support Agent:</strong>
+                                <div>${escapeHtml(msg.reply)}</div>
+                                <div class="msg-time">${new Date(msg.repliedAt).toLocaleString()}</div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                html += `
+                            </div>
+                            <div class="reply-area">
+                                <textarea id="reply-${user.userId}" class="reply-text" rows="3" placeholder="Type your reply..."></textarea>
+                                <button class="send-reply" onclick="sendReply('${user.userId}')">Send Reply</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('conversationsList').innerHTML = html;
+        }
+        
+        function toggleConversation(convId) {
+            const element = document.getElementById(convId);
+            element.classList.toggle('open');
+        }
+        
+        async function sendReply(userId) {
+            const replyText = document.getElementById(`reply-${userId}`).value;
+            if (!replyText.trim()) {
+                alert('Please enter a reply');
+                return;
+            }
+            
+            const userMessages = allMessages.filter(m => m.userId === userId);
+            const lastMessage = userMessages[userMessages.length - 1];
+            
+            if (!lastMessage) {
+                alert('No message found for this user');
+                return;
+            }
+            
+            const res = await fetch('/api/admin/chat/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    adminEmail: currentAdminEmail,
+                    adminPassword: currentAdminPassword,
+                    messageId: lastMessage._id,
+                    reply: replyText
+                })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById(`reply-${userId}`).value = '';
+                loadConversations();
+            } else {
+                alert('Failed to send reply: ' + data.error);
+            }
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
     </script>
 </body>
 </html>
