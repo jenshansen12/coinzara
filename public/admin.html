@@ -10,7 +10,7 @@
         .container { max-width: 1200px; margin: 0 auto; }
         h1 { color: #F0B90B; margin-bottom: 24px; }
         .login-box, .admin-box { background: #1E232C; padding: 24px; border-radius: 16px; margin-bottom: 24px; border: 1px solid #2B3139; }
-        input { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; margin-bottom: 16px; }
+        input, select { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; margin-bottom: 16px; }
         button { background: #F0B90B; color: #0B0E1A; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-right: 8px; margin-bottom: 8px; }
         table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.75rem; overflow-x: auto; display: block; }
         th, td { padding: 10px 6px; text-align: left; border-bottom: 1px solid #2B3139; }
@@ -31,11 +31,15 @@
         <div id="adminLogin" class="login-box"><h3>Administrator Access</h3><input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org"><input type="password" id="adminPassword" placeholder="Admin Password"><button onclick="adminLogin()">Login</button><div id="loginMsg"></div></div>
         
         <div id="adminPanel" style="display:none;">
-            <div class="admin-box"><h3>Manual Balance Adjustment</h3><input type="email" id="userEmail" placeholder="User Email"><input type="number" id="newBalance" placeholder="New Balance (USD)"><input type="text" id="reason" placeholder="Reason (Deposit / Withdrawal)"><button onclick="updateBalance()">Update Balance</button><div id="balanceMsg"></div></div>
+            <div class="admin-box"><h3>Add Deposit</h3><input type="email" id="depositEmail" placeholder="User Email"><input type="number" id="depositAmount" placeholder="Deposit Amount (USD)"><input type="text" id="depositReason" placeholder="Reason (e.g., BTC Deposit)"><button onclick="addDeposit()">Add Deposit</button><div id="depositMsg"></div></div>
+            
+            <div class="admin-box"><h3>Add Withdrawal</h3><input type="email" id="withdrawalEmail" placeholder="User Email"><input type="number" id="withdrawalAmount" placeholder="Withdrawal Amount (USD)"><input type="text" id="withdrawalReason" placeholder="Reason (e.g., BTC Withdrawal)"><button onclick="addWithdrawal()">Add Withdrawal</button><div id="withdrawalMsg"></div></div>
             
             <div class="admin-box"><h3>Update AI Profit</h3><input type="email" id="aiUserEmail" placeholder="User Email"><input type="number" id="aiProfitAmount" placeholder="AI Profit Amount (USD)"><button onclick="updateAiProfit()">Update AI Profit</button><div id="aiProfitMsg"></div></div>
             
             <div class="admin-box"><h3>Delete User Account</h3><input type="email" id="deleteUserEmail" placeholder="User Email"><button onclick="deleteUser()" style="background:#F6465D; color:white;">Delete User Permanently</button><div id="deleteMsg"></div></div>
+            
+            <div class="admin-box"><h3>View User Transactions</h3><input type="email" id="txUserEmail" placeholder="User Email"><button onclick="loadUserTransactions()">Load Transaction History</button><div id="userTransactionsList"></div></div>
             
             <div class="admin-box"><h3>Platform Stats (Proof of Reserves)</h3>
                 <input type="number" id="totalUserBalances" placeholder="Total User Balances (USD)">
@@ -62,8 +66,7 @@
         </div>
         <div class="footer">&copy; 2026 Coinzara.org | Admin Panel</div>
     </div>
-    
-    <script>
+        <script>
         let historicalMonths = [];
         
         async function adminLogin() {
@@ -80,22 +83,41 @@
             }
         }
         
-        async function updateBalance() {
-            const userEmail = document.getElementById('userEmail').value;
-            const newBalance = document.getElementById('newBalance').value;
-            const reason = document.getElementById('reason').value;
+        async function addDeposit() {
+            const userEmail = document.getElementById('depositEmail').value;
+            const amount = document.getElementById('depositAmount').value;
+            const reason = document.getElementById('depositReason').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
-            const res = await fetch('/api/admin/update-balance', {
+            const res = await fetch('/api/admin/add-deposit', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminEmail, adminPassword, userEmail, newBalance: parseFloat(newBalance), reason })
+                body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
             });
             const data = await res.json();
             if (data.success) {
-                document.getElementById('balanceMsg').innerHTML = `<div class="success">Balance updated to $${data.newBalance}</div>`;
+                document.getElementById('depositMsg').innerHTML = `<div class="success">Deposit added! New balance: $${data.newBalance}</div>`;
                 loadUsers();
             } else {
-                document.getElementById('balanceMsg').innerHTML = `<div class="error">${data.error}</div>`;
+                document.getElementById('depositMsg').innerHTML = `<div class="error">${data.error}</div>`;
+            }
+        }
+        
+        async function addWithdrawal() {
+            const userEmail = document.getElementById('withdrawalEmail').value;
+            const amount = document.getElementById('withdrawalAmount').value;
+            const reason = document.getElementById('withdrawalReason').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch('/api/admin/add-withdrawal', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('withdrawalMsg').innerHTML = `<div class="success">Withdrawal added! New balance: $${data.newBalance}</div>`;
+                loadUsers();
+            } else {
+                document.getElementById('withdrawalMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
         
@@ -132,6 +154,35 @@
                 loadUsers();
             } else {
                 document.getElementById('deleteMsg').innerHTML = `<div class="error">${data.error}</div>`;
+            }
+        }
+        
+        async function loadUserTransactions() {
+            const userEmail = document.getElementById('txUserEmail').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch(`/api/admin/user-transactions?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
+            const data = await res.json();
+            if (data.success) {
+                const container = document.getElementById('userTransactionsList');
+                if (data.transactions.length === 0) {
+                    container.innerHTML = '<div class="success">No transactions found for this user.</div>';
+                    return;
+                }
+                let html = '<div style="margin-top: 10px; overflow-x: auto;"><table style="width:100%;"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Reason</th></tr></thead><tbody>';
+                data.transactions.forEach(tx => {
+                    html += `<tr>
+                        <td>${new Date(tx.date).toLocaleString()}</td>
+                        <td>${tx.type}</td>
+                        <td>$${Math.abs(tx.amount).toFixed(2)}</td>
+                        <td>$${tx.balance.toFixed(2)}</td>
+                        <td>${tx.reason || '-'}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div><div style="margin-top:10px;"><strong>Current Balance:</strong> $' + data.balance.toFixed(2) + '</div>';
+                container.innerHTML = html;
+            } else {
+                document.getElementById('userTransactionsList').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
         

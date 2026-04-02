@@ -22,7 +22,6 @@
         .medium { background: #F0B90B; width: 66%; }
         .strong { background: #0ECB81; width: 100%; }
         .error { color: #F6465D; font-size: 0.8rem; margin-bottom: 12px; }
-        .success { color: #0ECB81; text-align: center; margin-top: 16px; }
         .login-link { text-align: center; margin-top: 24px; font-size: 0.85rem; color: #848E9C; }
         .login-link a { color: #F0B90B; text-decoration: none; }
         .disclaimer { background: #131722; border-left: 3px solid #F0B90B; padding: 12px; border-radius: 8px; font-size: 0.75rem; color: #848E9C; margin-bottom: 16px; }
@@ -88,6 +87,20 @@
     </div>
 
     <script>
+        // Save form data to sessionStorage before redirecting to CAPTCHA
+        function saveFormData() {
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                country: document.getElementById('country').value,
+                password: document.getElementById('password').value,
+                securityQ1: document.getElementById('securityQ1').value,
+                securityA1: document.getElementById('securityA1').value,
+                referralCode: document.getElementById('referralCode').value
+            };
+            sessionStorage.setItem('signupData', JSON.stringify(formData));
+        }
+        
         function togglePassword(fieldId, btn) {
             const field = document.getElementById(fieldId);
             if (field.type === 'password') {
@@ -124,8 +137,10 @@
         
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const password = document.getElementById('password').value;
             const confirm = document.getElementById('confirmPassword').value;
+            
             if (password.length < 8) {
                 document.getElementById('message').innerHTML = '<div class="error">Password must be at least 8 characters</div>';
                 return;
@@ -134,26 +149,10 @@
                 document.getElementById('message').innerHTML = '<div class="error">Passwords do not match</div>';
                 return;
             }
-            const data = {
-                fullName: document.getElementById('fullName').value,
-                email: document.getElementById('email').value,
-                country: document.getElementById('country').value,
-                password: password,
-                securityQ1: document.getElementById('securityQ1').value,
-                securityA1: document.getElementById('securityA1').value,
-                referralCode: document.getElementById('referralCode').value
-            };
-            const res = await fetch('/api/signup', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await res.json();
-            if (result.success) {
-                document.getElementById('message').innerHTML = '<div class="success">Account created successfully! Your email has been verified. Redirecting...</div>';
-                setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
-            } else {
-                document.getElementById('message').innerHTML = `<div class="error">${result.error}</div>`;
-            }
+            
+            // Save form data and redirect to CAPTCHA page
+            saveFormData();
+            window.location.href = 'captcha.html';
         });
     </script>
 </body>

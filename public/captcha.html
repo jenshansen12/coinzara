@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Verify | Coinzara</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0B0E1A; color: #EAECEF; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .container { max-width: 450px; width: 100%; background: #1E232C; border-radius: 16px; padding: 32px; border: 1px solid #2B3139; text-align: center; }
+        h1 { font-size: 1.5rem; margin-bottom: 8px; color: #F0B90B; }
+        .subtitle { color: #848E9C; font-size: 0.85rem; margin-bottom: 32px; }
+        .captcha-box { background: #131722; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #2B3139; }
+        .checkbox-container { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px; padding: 16px; background: #2B3139; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .checkbox-container:hover { background: #3B4149; }
+        .checkbox-container input { width: 20px; height: 20px; cursor: pointer; margin: 0; }
+        .checkbox-container label { font-size: 1rem; cursor: pointer; color: #EAECEF; }
+        .checkbox-container.verified { background: #0ECB8122; border: 1px solid #0ECB81; }
+        .checkbox-container.verified label { color: #0ECB81; }
+        .captcha-status { font-size: 0.75rem; color: #848E9C; }
+        .captcha-status.verified { color: #0ECB81; }
+        .verify-btn { width: 100%; background: #F0B90B; color: #0B0E1A; border: none; padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
+        .verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error { color: #F6465D; font-size: 0.8rem; margin-top: 16px; }
+        .loading { display: none; margin-top: 16px; color: #F0B90B; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verify You Are Human</h1>
+        <div class="subtitle">Complete the verification to create your account</div>
+        
+        <div class="captcha-box">
+            <div class="checkbox-container" id="captchaCheckbox">
+                <input type="checkbox" id="robotCheckbox">
+                <label for="robotCheckbox">I'm not a robot</label>
+            </div>
+            <div id="captchaStatus" class="captcha-status">Click the checkbox to verify</div>
+        </div>
+        
+        <button class="verify-btn" id="verifyBtn" disabled>Verify & Continue</button>
+        <div id="errorMsg" class="error"></div>
+        <div id="loadingMsg" class="loading">Creating your account...</div>
+    </div>
+
+    <script>
+        const checkbox = document.getElementById('robotCheckbox');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const checkboxContainer = document.getElementById('captchaCheckbox');
+        const captchaStatus = document.getElementById('captchaStatus');
+        const errorMsg = document.getElementById('errorMsg');
+        const loadingMsg = document.getElementById('loadingMsg');
+        
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                checkboxContainer.classList.add('verified');
+                verifyBtn.disabled = false;
+                captchaStatus.innerHTML = '✓ Verification passed';
+                captchaStatus.classList.add('verified');
+            } else {
+                checkboxContainer.classList.remove('verified');
+                verifyBtn.disabled = true;
+                captchaStatus.innerHTML = 'Click the checkbox to verify';
+                captchaStatus.classList.remove('verified');
+            }
+        });
+        
+        verifyBtn.addEventListener('click', async () => {
+            if (!checkbox.checked) {
+                errorMsg.innerText = 'Please verify that you are not a robot';
+                return;
+            }
+            
+            const signupData = sessionStorage.getItem('signupData');
+            if (!signupData) {
+                errorMsg.innerText = 'Session expired. Please go back and sign up again.';
+                setTimeout(() => { window.location.href = 'signup.html'; }, 2000);
+                return;
+            }
+            
+            const data = JSON.parse(signupData);
+            data.captcha = 'verified';
+            
+            verifyBtn.disabled = true;
+            loadingMsg.style.display = 'block';
+            errorMsg.innerText = '';
+            
+            const res = await fetch('/api/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await res.json();
+            
+            if (result.success) {
+                sessionStorage.removeItem('signupData');
+                loadingMsg.innerHTML = 'Account created! Redirecting...';
+                setTimeout(() => { window.location.href = 'terms-agreement.html'; }, 1500);
+            } else {
+                loadingMsg.style.display = 'none';
+                verifyBtn.disabled = false;
+                errorMsg.innerText = result.error;
+                checkbox.checked = false;
+                checkboxContainer.classList.remove('verified');
+                verifyBtn.disabled = true;
+                captchaStatus.innerHTML = 'Click the checkbox to verify';
+                captchaStatus.classList.remove('verified');
+            }
+        });
+    </script>
+</body>
+</html>

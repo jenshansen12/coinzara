@@ -78,6 +78,7 @@
                 <a href="transaction-history.html">History</a>
                 <a href="settings.html">Settings</a>
                 <a href="support.html">Support</a>
+                <a href="proof-of-reserves.html">Proof of Reserves</a>
                 <a href="#" id="logoutBtn">Logout</a>
             </div>
         </div>
@@ -132,7 +133,6 @@
         function copyEmail() { const email = document.getElementById('supportEmail').innerText; navigator.clipboard.writeText(email); alert('Copied: ' + email); }
         document.getElementById('logoutBtn').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; });
         
-        // Chat Widget Logic
         let isLoggedIn = false;
         async function checkLoginStatus() { const res = await fetch('/api/me'); const data = await res.json(); isLoggedIn = data.loggedIn; if (isLoggedIn) { loadChatHistory(); } else { document.getElementById('chatStatus').innerHTML = 'Please login to chat with support'; document.getElementById('chatInput').disabled = true; document.getElementById('chatSend').disabled = true; } }
         async function loadChatHistory() { const res = await fetch('/api/chat/my-messages'); const data = await res.json(); if (data.success && data.messages.length > 0) { const messagesDiv = document.getElementById('chatMessages'); if (messagesDiv.children.length === 1 && messagesDiv.children[0].innerText.includes('Hello')) { messagesDiv.innerHTML = ''; } data.messages.forEach(msg => { addMessageToChat(msg.message, false); if (msg.reply) { addMessageToChat(msg.reply, true); } }); } }
