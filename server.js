@@ -111,7 +111,6 @@ app.post('/api/signup', async (req, res) => {
   try {
     const { fullName, email, country, password, securityQ1, securityA1, referralCode, captcha } = req.body;
     
-    // Simple CAPTCHA check (hCaptcha will be added client-side)
     if (!captcha || captcha !== 'verified') {
       return res.json({ success: false, error: 'Please complete the CAPTCHA' });
     }
@@ -382,6 +381,30 @@ app.get('/api/admin/user-transactions', async (req, res) => {
   res.json({ success: true, transactions: user.transactionHistory, balance: user.balance });
 });
 
+// ========== ADMIN - GET USER DETAILS (for password reset) ==========
+app.get('/api/admin/user-details', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail } = req.query;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const user = await User.findOne({ email: userEmail });
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+  
+  res.json({ 
+    success: true, 
+    user: {
+      fullName: user.fullName,
+      email: user.email,
+      securityQuestion: user.securityQuestion,
+      createdAt: user.createdAt
+    }
+  });
+});
+
 // ========== ADMIN - UPDATE PLATFORM STATS ==========
 app.post('/api/admin/update-stats', async (req, res) => {
   const { adminEmail, adminPassword, totalUserBalances, totalBTCHeld, totalETHHeld, totalBNBHeld, totalSOLHeld, totalTRONHeld, aiTradingVolume, totalTrades, monthlyReturn, historicalReserves } = req.body;
@@ -450,7 +473,6 @@ app.post('/api/request-withdrawal', async (req, res) => {
     return res.json({ success: false, error: 'Insufficient balance' });
   }
   
-  // Note: This only creates a request. Admin must manually process and add withdrawal record.
   res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
 
