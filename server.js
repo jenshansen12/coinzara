@@ -683,7 +683,7 @@ app.post('/api/chat/send', async (req, res) => {
   res.json({ success: true, message: 'Message sent. Support will reply soon.' });
 });
 
-// IMPORTANT: This endpoint now sorts messages by createdAt (oldest first)
+// IMPORTANT: Sorted by createdAt (oldest first) for correct chronological order
 app.get('/api/chat/my-messages', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
@@ -714,6 +714,11 @@ app.post('/api/admin/chat/reply', async (req, res) => {
   const message = await ChatMessage.findById(messageId);
   if (!message) {
     return res.json({ success: false, error: 'Message not found' });
+  }
+  
+  // Prevent duplicate replies
+  if (message.reply && message.reply.trim()) {
+    return res.json({ success: false, error: 'This message already has a reply' });
   }
   
   message.reply = reply;
