@@ -131,8 +131,28 @@
             
             let html = '';
             users.forEach(user => {
-                // Sort messages chronologically (oldest first)
-                const sortedMessages = user.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                // Create flat list of all entries (user messages and replies) sorted by time
+                const allEntries = [];
+                user.messages.forEach(msg => {
+                    allEntries.push({
+                        type: 'user',
+                        text: msg.message,
+                        timestamp: new Date(msg.createdAt),
+                        sortTime: msg.createdAt,
+                        userName: msg.userName
+                    });
+                    if (msg.reply && msg.reply.trim()) {
+                        allEntries.push({
+                            type: 'support',
+                            text: msg.reply,
+                            timestamp: new Date(msg.repliedAt),
+                            sortTime: msg.repliedAt,
+                            userName: 'Support Agent'
+                        });
+                    }
+                });
+                allEntries.sort((a, b) => a.timestamp - b.timestamp);
+                
                 const hasUnreplied = user.messages.some(m => !m.isReplied);
                 const statusClass = hasUnreplied ? 'status-pending' : 'status-replied';
                 const statusText = hasUnreplied ? 'Pending Reply' : 'Replied';
@@ -154,24 +174,15 @@
                             <div class="message-thread" id="thread-${user.userId}">
                 `;
                 
-                // Display all messages in chronological order (user and agent replies mixed)
-                sortedMessages.forEach(msg => {
+                allEntries.forEach(entry => {
+                    const msgClass = entry.type === 'user' ? 'user-msg' : 'support-msg';
                     html += `
-                        <div class="user-msg">
-                            <strong>${escapeHtml(msg.userName)}:</strong>
-                            <div>${escapeHtml(msg.message)}</div>
-                            <div class="msg-time">${new Date(msg.createdAt).toLocaleString()}</div>
+                        <div class="${msgClass}">
+                            <strong>${escapeHtml(entry.userName)}:</strong>
+                            <div>${escapeHtml(entry.text)}</div>
+                            <div class="msg-time">${entry.timestamp.toLocaleString()}</div>
                         </div>
                     `;
-                    if (msg.reply) {
-                        html += `
-                            <div class="support-msg">
-                                <strong>Support Agent:</strong>
-                                <div>${escapeHtml(msg.reply)}</div>
-                                <div class="msg-time">${new Date(msg.repliedAt).toLocaleString()}</div>
-                            </div>
-                        `;
-                    }
                 });
                 
                 html += `

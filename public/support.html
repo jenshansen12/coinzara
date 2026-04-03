@@ -162,7 +162,7 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - COMPLETELY FIXED (No duplicates)
+        // Chat Widget - Chronological order (flat list, no threading)
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;
@@ -187,22 +187,38 @@
             const res = await fetch('/api/chat/my-messages'); 
             const data = await res.json(); 
             const messagesDiv = document.getElementById('chatMessages'); 
-            
-            // ALWAYS clear the container first
             messagesDiv.innerHTML = '';
             
             if (data.success && data.messages.length > 0) { 
-                const sorted = [...data.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                sorted.forEach(msg => { 
-                    addMessageToChat(msg.message, false, msg.createdAt); 
-                    if (msg.reply && msg.reply.trim()) { 
-                        addMessageToChat(msg.reply, true, msg.repliedAt); 
-                    } 
-                }); 
+                // Create a flat list of all messages (user messages and replies)
+                const allEntries = [];
+                data.messages.forEach(msg => {
+                    // Add user message
+                    allEntries.push({
+                        text: msg.message,
+                        isSupport: false,
+                        timestamp: new Date(msg.createdAt),
+                        sortTime: msg.createdAt
+                    });
+                    // Add reply if exists
+                    if (msg.reply && msg.reply.trim()) {
+                        allEntries.push({
+                            text: msg.reply,
+                            isSupport: true,
+                            timestamp: new Date(msg.repliedAt),
+                            sortTime: msg.repliedAt
+                        });
+                    }
+                });
+                // Sort by timestamp (oldest first)
+                allEntries.sort((a, b) => a.timestamp - b.timestamp);
+                // Display all messages in order
+                allEntries.forEach(entry => {
+                    addMessageToChat(entry.text, entry.isSupport, entry.sortTime);
+                });
             } else {
                 addMessageToChat('Hello! How can I help you today?', true, new Date());
             }
-            
             isLoading = false;
         }
         
@@ -210,15 +226,12 @@
             const messagesDiv = document.getElementById('chatMessages'); 
             const bubble = document.createElement('div'); 
             bubble.className = isSupport ? 'support-message-bubble' : 'user-message-bubble'; 
-            
             const textSpan = document.createElement('div');
             textSpan.innerText = message;
-            
             const timeSpan = document.createElement('div');
             timeSpan.className = 'msg-time';
             const date = timestamp ? new Date(timestamp) : new Date();
             timeSpan.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
             bubble.appendChild(textSpan);
             bubble.appendChild(timeSpan);
             messagesDiv.appendChild(bubble); 
@@ -236,9 +249,7 @@
             const message = input.value.trim(); 
             if (!message) return; 
             isSending = true; 
-            
             input.value = ''; 
-            
             const res = await fetch('/api/chat/send', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' }, 
@@ -250,7 +261,6 @@
                 input.value = message;
             }
             isSending = false; 
-            
             await loadChatHistory();
         }
         

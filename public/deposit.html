@@ -169,7 +169,7 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - FIXED (No duplicates)
+        // Chat Widget - Chronological order
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;
@@ -197,13 +197,27 @@
             messagesDiv.innerHTML = '';
             
             if (data.success && data.messages.length > 0) { 
-                const sorted = [...data.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                sorted.forEach(msg => { 
-                    addMessageToChat(msg.message, false, msg.createdAt); 
-                    if (msg.reply && msg.reply.trim()) { 
-                        addMessageToChat(msg.reply, true, msg.repliedAt); 
-                    } 
-                }); 
+                const allEntries = [];
+                data.messages.forEach(msg => {
+                    allEntries.push({
+                        text: msg.message,
+                        isSupport: false,
+                        timestamp: new Date(msg.createdAt),
+                        sortTime: msg.createdAt
+                    });
+                    if (msg.reply && msg.reply.trim()) {
+                        allEntries.push({
+                            text: msg.reply,
+                            isSupport: true,
+                            timestamp: new Date(msg.repliedAt),
+                            sortTime: msg.repliedAt
+                        });
+                    }
+                });
+                allEntries.sort((a, b) => a.timestamp - b.timestamp);
+                allEntries.forEach(entry => {
+                    addMessageToChat(entry.text, entry.isSupport, entry.sortTime);
+                });
             } else {
                 addMessageToChat('Hello! How can I help you today?', true, new Date());
             }
