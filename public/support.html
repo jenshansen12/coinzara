@@ -113,7 +113,7 @@
     <div class="chat-button" id="chatButton"><span>💬</span></div>
     <div class="chat-widget" id="chatWidget">
         <div class="chat-header"><h4>Customer Support</h4><button class="chat-close" id="chatClose">✕</button></div>
-        <div class="chat-messages" id="chatMessages"><div class="support-message-bubble">Hello! How can I help you today?</div></div>
+        <div class="chat-messages" id="chatMessages"></div>
         <div class="chat-status" id="chatStatus">Online - Reply within 24 hours</div>
         <div class="chat-input-area"><input type="text" id="chatInput" placeholder="Type your message..."><button id="chatSend">Send</button></div>
     </div>
@@ -161,20 +161,110 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget
+        // Chat Widget - FIXED (no duplicate messages)
         let isLoggedIn = false;
         let isSending = false;
         
-        async function checkLoginStatus() { const res = await fetch('/api/me'); const data = await res.json(); isLoggedIn = data.loggedIn; if (isLoggedIn) { loadChatHistory(); } else { document.getElementById('chatStatus').innerHTML = 'Please login to chat with support'; document.getElementById('chatInput').disabled = true; document.getElementById('chatSend').disabled = true; } }
-        async function loadChatHistory() { const res = await fetch('/api/chat/my-messages'); const data = await res.json(); if (data.success && data.messages.length > 0) { const messagesDiv = document.getElementById('chatMessages'); if (messagesDiv.children.length === 1 && messagesDiv.children[0].innerText.includes('Hello')) { messagesDiv.innerHTML = ''; } data.messages.forEach(msg => { addMessageToChat(msg.message, false); if (msg.reply) { addMessageToChat(msg.reply, true); } }); } }
-        function addMessageToChat(message, isSupport) { const messagesDiv = document.getElementById('chatMessages'); const bubble = document.createElement('div'); bubble.className = isSupport ? 'support-message-bubble' : 'user-message-bubble'; bubble.innerText = message; messagesDiv.appendChild(bubble); messagesDiv.scrollTop = messagesDiv.scrollHeight; }
-        async function sendMessage() { if (!isLoggedIn) { alert('Please login to send a message'); window.location.href = 'login.html'; return; } if (isSending) return; const input = document.getElementById('chatInput'); const message = input.value.trim(); if (!message) return; isSending = true; addMessageToChat(message, false); input.value = ''; const res = await fetch('/api/chat/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) }); const data = await res.json(); if (!data.success) { alert(data.error); addMessageToChat('Failed to send. Please try again.', true); } isSending = false; }
+        async function checkLoginStatus() { 
+            const res = await fetch('/api/me'); 
+            const data = await res.json(); 
+            isLoggedIn = data.loggedIn; 
+            if (isLoggedIn) { 
+                loadChatHistory(); 
+            } else { 
+                document.getElementById('chatStatus').innerHTML = 'Please login to chat with support'; 
+                document.getElementById('chatInput').disabled = true; 
+                document.getElementById('chatSend').disabled = true; 
+            } 
+        }
         
-        const chatButton = document.getElementById('chatButton'); const chatWidget = document.getElementById('chatWidget'); const chatClose = document.getElementById('chatClose'); const chatSend = document.getElementById('chatSend'); const chatInput = document.getElementById('chatInput');
-        chatButton.addEventListener('click', () => { chatWidget.classList.toggle('open'); if (isLoggedIn) { loadChatHistory(); } });
-        chatClose.addEventListener('click', () => { chatWidget.classList.remove('open'); });
-        chatSend.addEventListener('click', sendMessage); chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !isSending) { e.preventDefault(); sendMessage(); } });
-        checkLoginStatus(); setInterval(() => { if (isLoggedIn && chatWidget.classList.contains('open')) { loadChatHistory(); } }, 15000);
+        async function loadChatHistory() { 
+            const res = await fetch('/api/chat/my-messages'); 
+            const data = await res.json(); 
+            const messagesDiv = document.getElementById('chatMessages'); 
+            
+            // Clear existing messages first (THIS PREVENTS DUPLICATES)
+            messagesDiv.innerHTML = '';
+            
+            if (data.success && data.messages.length > 0) { 
+                data.messages.forEach(msg => { 
+                    addMessageToChat(msg.message, false); 
+                    if (msg.reply) { 
+                        addMessageToChat(msg.reply, true); 
+                    } 
+                }); 
+            } else {
+                // Only show welcome message if no messages exist
+                addMessageToChat('Hello! How can I help you today?', true);
+            }
+        }
+        
+        function addMessageToChat(message, isSupport) { 
+            const messagesDiv = document.getElementById('chatMessages'); 
+            const bubble = document.createElement('div'); 
+            bubble.className = isSupport ? 'support-message-bubble' : 'user-message-bubble'; 
+            bubble.innerText = message; 
+            messagesDiv.appendChild(bubble); 
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; 
+        }
+        
+        async function sendMessage() { 
+            if (!isLoggedIn) { 
+                alert('Please login to send a message'); 
+                window.location.href = 'login.html'; 
+                return; 
+            } 
+            if (isSending) return; 
+            const input = document.getElementById('chatInput'); 
+            const message = input.value.trim(); 
+            if (!message) return; 
+            isSending = true; 
+            addMessageToChat(message, false); 
+            input.value = ''; 
+            const res = await fetch('/api/chat/send', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ message }) 
+            }); 
+            const data = await res.json(); 
+            if (!data.success) { 
+                alert(data.error); 
+                addMessageToChat('Failed to send. Please try again.', true);
+            } 
+            isSending = false; 
+        }
+        
+        const chatButton = document.getElementById('chatButton'); 
+        const chatWidget = document.getElementById('chatWidget'); 
+        const chatClose = document.getElementById('chatClose'); 
+        const chatSend = document.getElementById('chatSend'); 
+        const chatInput = document.getElementById('chatInput');
+        
+        chatButton.addEventListener('click', () => { 
+            chatWidget.classList.toggle('open'); 
+            if (isLoggedIn) { 
+                loadChatHistory(); 
+            } 
+        });
+        
+        chatClose.addEventListener('click', () => { 
+            chatWidget.classList.remove('open'); 
+        });
+        
+        chatSend.addEventListener('click', sendMessage); 
+        chatInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter' && !isSending) { 
+                e.preventDefault(); 
+                sendMessage(); 
+            } 
+        });
+        
+        checkLoginStatus(); 
+        setInterval(() => { 
+            if (isLoggedIn && chatWidget.classList.contains('open')) { 
+                loadChatHistory(); 
+            } 
+        }, 15000);
     </script>
 </body>
 </html>
