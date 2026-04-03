@@ -683,6 +683,7 @@ app.post('/api/chat/send', async (req, res) => {
   res.json({ success: true, message: 'Message sent. Support will reply soon.' });
 });
 
+// IMPORTANT: This endpoint now sorts messages by createdAt (oldest first)
 app.get('/api/chat/my-messages', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
