@@ -22,8 +22,8 @@
         .conversation-body { display: none; padding: 16px; border-top: 1px solid #2B3139; }
         .conversation-body.open { display: block; }
         .message-thread { max-height: 400px; overflow-y: auto; margin-bottom: 16px; }
-        .user-msg { background: #2B3139; padding: 12px; border-radius: 12px; margin-bottom: 12px; margin-left: 20px; }
-        .support-msg { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 12px; border-radius: 12px; margin-bottom: 12px; margin-right: 20px; }
+        .user-msg { background: #2B3139; padding: 12px; border-radius: 12px; margin-bottom: 12px; }
+        .support-msg { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 12px; border-radius: 12px; margin-bottom: 12px; }
         .msg-time { font-size: 0.65rem; color: #848E9C; margin-top: 4px; }
         .reply-area { margin-top: 16px; border-top: 1px solid #2B3139; padding-top: 16px; }
         .reply-text { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; font-family: inherit; margin-bottom: 12px; resize: vertical; }
@@ -131,6 +131,7 @@
             
             let html = '';
             users.forEach(user => {
+                // Sort messages chronologically (oldest first)
                 const sortedMessages = user.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                 const hasUnreplied = user.messages.some(m => !m.isReplied);
                 const statusClass = hasUnreplied ? 'status-pending' : 'status-replied';
@@ -153,6 +154,7 @@
                             <div class="message-thread" id="thread-${user.userId}">
                 `;
                 
+                // Display all messages in chronological order (user and agent replies mixed)
                 sortedMessages.forEach(msg => {
                     html += `
                         <div class="user-msg">
@@ -198,13 +200,14 @@
                 return;
             }
             
-            const userMessages = allMessages.filter(m => m.userId === userId);
-            const lastMessage = userMessages[userMessages.length - 1];
-            
-            if (!lastMessage) {
-                alert('No message found for this user');
+            // Find the last unreplied message from this user
+            const userMessages = allMessages.filter(m => m.userId === userId && !m.isReplied);
+            if (userMessages.length === 0) {
+                alert('No pending message to reply to');
                 return;
             }
+            
+            const lastMessage = userMessages[userMessages.length - 1];
             
             const res = await fetch('/api/admin/chat/reply', {
                 method: 'POST',

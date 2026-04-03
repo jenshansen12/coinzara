@@ -57,6 +57,7 @@
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .user-message-bubble { background: #2B3139; padding: 10px 14px; border-radius: 18px; max-width: 80%; align-self: flex-end; font-size: 0.85rem; }
         .support-message-bubble { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 10px 14px; border-radius: 18px; max-width: 80%; align-self: flex-start; font-size: 0.85rem; }
+        .msg-time { font-size: 0.65rem; color: #848E9C; margin-top: 4px; }
         .chat-input-area { padding: 16px; border-top: 1px solid #2B3139; display: flex; gap: 10px; }
         .chat-input-area input { flex: 1; margin-bottom: 0; padding: 10px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; }
         .chat-input-area button { width: auto; padding: 10px 16px; margin: 0; }
@@ -161,7 +162,7 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - FIXED (no duplicate messages)
+        // Chat Widget - Simple chronological chat
         let isLoggedIn = false;
         let isSending = false;
         
@@ -182,28 +183,36 @@
             const res = await fetch('/api/chat/my-messages'); 
             const data = await res.json(); 
             const messagesDiv = document.getElementById('chatMessages'); 
-            
-            // Clear existing messages first (THIS PREVENTS DUPLICATES)
             messagesDiv.innerHTML = '';
             
             if (data.success && data.messages.length > 0) { 
-                data.messages.forEach(msg => { 
-                    addMessageToChat(msg.message, false); 
+                // Sort messages by createdAt (oldest first for chronological order)
+                const sortedMessages = [...data.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                sortedMessages.forEach(msg => { 
+                    addMessageToChat(msg.message, false, msg.createdAt); 
                     if (msg.reply) { 
-                        addMessageToChat(msg.reply, true); 
+                        addMessageToChat(msg.reply, true, msg.repliedAt); 
                     } 
                 }); 
             } else {
-                // Only show welcome message if no messages exist
-                addMessageToChat('Hello! How can I help you today?', true);
+                addMessageToChat('Hello! How can I help you today?', true, new Date());
             }
         }
         
-        function addMessageToChat(message, isSupport) { 
+        function addMessageToChat(message, isSupport, timestamp) { 
             const messagesDiv = document.getElementById('chatMessages'); 
             const bubble = document.createElement('div'); 
             bubble.className = isSupport ? 'support-message-bubble' : 'user-message-bubble'; 
-            bubble.innerText = message; 
+            
+            const textSpan = document.createElement('div');
+            textSpan.innerText = message;
+            
+            const timeSpan = document.createElement('div');
+            timeSpan.className = 'msg-time';
+            timeSpan.innerText = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            bubble.appendChild(textSpan);
+            bubble.appendChild(timeSpan);
             messagesDiv.appendChild(bubble); 
             messagesDiv.scrollTop = messagesDiv.scrollHeight; 
         }
@@ -219,7 +228,7 @@
             const message = input.value.trim(); 
             if (!message) return; 
             isSending = true; 
-            addMessageToChat(message, false); 
+            addMessageToChat(message, false, new Date()); 
             input.value = ''; 
             const res = await fetch('/api/chat/send', { 
                 method: 'POST', 
@@ -229,7 +238,6 @@
             const data = await res.json(); 
             if (!data.success) { 
                 alert(data.error); 
-                addMessageToChat('Failed to send. Please try again.', true);
             } 
             isSending = false; 
         }
