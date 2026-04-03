@@ -29,7 +29,6 @@
         .reply-text { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; font-family: inherit; margin-bottom: 12px; resize: vertical; }
         .send-reply { background: #F0B90B; color: #0B0E1A; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px; }
-        .badge-unread { background: #F6465D; color: white; }
         .delete-btn { background: #F6465D; color: white; padding: 4px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.7rem; margin-left: 10px; }
         .delete-btn:hover { opacity: 0.8; }
         .refresh-btn { margin-bottom: 16px; }
@@ -131,7 +130,7 @@
             
             let html = '';
             users.forEach(user => {
-                // CRITICAL FIX: Sort messages by createdAt (oldest first)
+                // Sort messages by createdAt (oldest first) for display
                 const sortedMessages = [...user.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                 
                 const hasUnreplied = sortedMessages.some(m => !m.isReplied);
@@ -202,17 +201,29 @@
                 return;
             }
             
-            // Find ONLY the most recent unreplied message from this user
+            // Get all messages for this user, sorted by createdAt (oldest first)
             const userMessages = allMessages
-                .filter(m => m.userId === userId && !m.isReplied)
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                .filter(m => m.userId === userId)
+                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
             
             if (userMessages.length === 0) {
-                alert('No pending message to reply to');
+                alert('No messages found');
                 return;
             }
             
-            const mostRecentMessage = userMessages[0];
+            // Find the most recent message that doesn't have a reply yet
+            let messageToReply = null;
+            for (let i = userMessages.length - 1; i >= 0; i--) {
+                if (!userMessages[i].isReplied) {
+                    messageToReply = userMessages[i];
+                    break;
+                }
+            }
+            
+            if (!messageToReply) {
+                alert('All messages already have replies');
+                return;
+            }
             
             const res = await fetch('/api/admin/chat/reply', {
                 method: 'POST',
@@ -220,7 +231,7 @@
                 body: JSON.stringify({
                     adminEmail: currentAdminEmail,
                     adminPassword: currentAdminPassword,
-                    messageId: mostRecentMessage._id,
+                    messageId: messageToReply._id,
                     reply: replyText
                 })
             });
