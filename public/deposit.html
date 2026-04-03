@@ -169,7 +169,7 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - Simplified (no sorting, display as received from server)
+        // Chat Widget - Simplified chronological order
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;
@@ -197,14 +197,26 @@
             messagesDiv.innerHTML = '';
             
             if (data.success && data.messages.length > 0) { 
-                // Display EXACTLY as received from server (already sorted by createdAt)
-                for (let i = 0; i < data.messages.length; i++) {
-                    const msg = data.messages[i];
-                    addMessageToChat(msg.message, false, msg.createdAt);
+                // Create flat list of all entries (user messages + replies) sorted by createdAt
+                const allEntries = [];
+                data.messages.forEach(msg => {
+                    allEntries.push({
+                        text: msg.message,
+                        isSupport: false,
+                        timestamp: new Date(msg.createdAt)
+                    });
                     if (msg.reply && msg.reply.trim()) {
-                        addMessageToChat(msg.reply, true, msg.repliedAt);
+                        allEntries.push({
+                            text: msg.reply,
+                            isSupport: true,
+                            timestamp: new Date(msg.repliedAt)
+                        });
                     }
-                }
+                });
+                allEntries.sort((a, b) => a.timestamp - b.timestamp);
+                allEntries.forEach(entry => {
+                    addMessageToChat(entry.text, entry.isSupport, entry.timestamp);
+                });
             } else {
                 addMessageToChat('Hello! How can I help you today?', true, new Date());
             }
