@@ -211,7 +211,7 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - Chronological order
+        // Chat Widget - Simplified chronological order
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;
@@ -244,21 +244,19 @@
                     allEntries.push({
                         text: msg.message,
                         isSupport: false,
-                        timestamp: new Date(msg.createdAt),
-                        sortTime: msg.createdAt
+                        timestamp: new Date(msg.createdAt)
                     });
                     if (msg.reply && msg.reply.trim()) {
                         allEntries.push({
                             text: msg.reply,
                             isSupport: true,
-                            timestamp: new Date(msg.repliedAt),
-                            sortTime: msg.repliedAt
+                            timestamp: new Date(msg.repliedAt)
                         });
                     }
                 });
                 allEntries.sort((a, b) => a.timestamp - b.timestamp);
                 allEntries.forEach(entry => {
-                    addMessageToChat(entry.text, entry.isSupport, entry.sortTime);
+                    addMessageToChat(entry.text, entry.isSupport, entry.timestamp);
                 });
             } else {
                 addMessageToChat('Hello! How can I help you today?', true, new Date());
