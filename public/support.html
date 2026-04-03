@@ -162,10 +162,10 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - COMPLETELY FIXED
+        // Chat Widget - COMPLETELY FIXED (No duplicates)
         let isLoggedIn = false;
         let isSending = false;
-        let currentMessages = [];
+        let isLoading = false;
         
         async function checkLoginStatus() { 
             const res = await fetch('/api/me'); 
@@ -181,31 +181,29 @@
         }
         
         async function loadChatHistory() { 
+            if (isLoading) return;
+            isLoading = true;
+            
             const res = await fetch('/api/chat/my-messages'); 
             const data = await res.json(); 
+            const messagesDiv = document.getElementById('chatMessages'); 
             
-            if (data.success && data.messages) {
-                // Store current messages for comparison
-                const newMessages = JSON.stringify(data.messages);
-                if (newMessages === currentMessages) return; // No change
-                currentMessages = newMessages;
-                
-                const messagesDiv = document.getElementById('chatMessages'); 
-                messagesDiv.innerHTML = '';
-                
-                if (data.messages.length > 0) { 
-                    // Sort by createdAt (oldest first)
-                    const sorted = [...data.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                    sorted.forEach(msg => { 
-                        addMessageToChat(msg.message, false, msg.createdAt); 
-                        if (msg.reply && msg.reply.trim()) { 
-                            addMessageToChat(msg.reply, true, msg.repliedAt); 
-                        } 
-                    }); 
-                } else {
-                    addMessageToChat('Hello! How can I help you today?', true, new Date());
-                }
+            // ALWAYS clear the container first
+            messagesDiv.innerHTML = '';
+            
+            if (data.success && data.messages.length > 0) { 
+                const sorted = [...data.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                sorted.forEach(msg => { 
+                    addMessageToChat(msg.message, false, msg.createdAt); 
+                    if (msg.reply && msg.reply.trim()) { 
+                        addMessageToChat(msg.reply, true, msg.repliedAt); 
+                    } 
+                }); 
+            } else {
+                addMessageToChat('Hello! How can I help you today?', true, new Date());
             }
+            
+            isLoading = false;
         }
         
         function addMessageToChat(message, isSupport, timestamp) { 
@@ -239,8 +237,6 @@
             if (!message) return; 
             isSending = true; 
             
-            // Add to UI immediately
-            addMessageToChat(message, false, new Date()); 
             input.value = ''; 
             
             const res = await fetch('/api/chat/send', { 
@@ -251,11 +247,11 @@
             const data = await res.json(); 
             if (!data.success) { 
                 alert(data.error); 
+                input.value = message;
             }
             isSending = false; 
             
-            // Reload to get updated history with any replies
-            setTimeout(() => loadChatHistory(), 500);
+            await loadChatHistory();
         }
         
         const chatButton = document.getElementById('chatButton'); 
@@ -266,7 +262,7 @@
         
         chatButton.addEventListener('click', () => { 
             chatWidget.classList.toggle('open'); 
-            if (isLoggedIn) { 
+            if (isLoggedIn && chatWidget.classList.contains('open')) { 
                 loadChatHistory(); 
             } 
         });
