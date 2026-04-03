@@ -131,14 +131,13 @@
             
             let html = '';
             users.forEach(user => {
-                // Create flat list of all entries (user messages and replies) sorted by time
+                // Create a flat list of all entries (user messages and replies) sorted by time
                 const allEntries = [];
                 user.messages.forEach(msg => {
                     allEntries.push({
                         type: 'user',
                         text: msg.message,
                         timestamp: new Date(msg.createdAt),
-                        sortTime: msg.createdAt,
                         userName: msg.userName
                     });
                     if (msg.reply && msg.reply.trim()) {
@@ -146,11 +145,11 @@
                             type: 'support',
                             text: msg.reply,
                             timestamp: new Date(msg.repliedAt),
-                            sortTime: msg.repliedAt,
                             userName: 'Support Agent'
                         });
                     }
                 });
+                // Sort by timestamp (oldest first)
                 allEntries.sort((a, b) => a.timestamp - b.timestamp);
                 
                 const hasUnreplied = user.messages.some(m => !m.isReplied);
@@ -174,6 +173,7 @@
                             <div class="message-thread" id="thread-${user.userId}">
                 `;
                 
+                // Display all entries in chronological order
                 allEntries.forEach(entry => {
                     const msgClass = entry.type === 'user' ? 'user-msg' : 'support-msg';
                     html += `
@@ -211,7 +211,6 @@
                 return;
             }
             
-            // Find the last unreplied message from this user
             const userMessages = allMessages.filter(m => m.userId === userId && !m.isReplied);
             if (userMessages.length === 0) {
                 alert('No pending message to reply to');
