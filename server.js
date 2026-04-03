@@ -618,33 +618,7 @@ app.get('/api/platform-stats', async (req, res) => {
   const stats = await PlatformStats.findOne();
   res.json({ success: true, stats });
 
-  // ========== NEWS RSS FEED ENDPOINT (No API Key Required) ==========
-app.get('/api/news', async (req, res) => {
-  try {
-    // Use CoinDesk RSS feed via rss2json (free, no API key)
-    const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed/');
-    const data = await response.json();
-    
-    if (data.status === 'ok' && data.items) {
-      // Format articles to match what news.html expects
-      const articles = data.items.slice(0, 6).map(item => ({
-        title: item.title,
-        description: item.description.replace(/<[^>]*>/g, '').substring(0, 200),
-        url: item.link,
-        source: { name: item.author || 'CoinDesk' },
-        publishedAt: item.pubDate
-      }));
-      res.json({ success: true, articles: articles });
-    } else {
-      // Fallback news if RSS fails
-      res.json({ success: true, articles: getFallbackNews() });
-    }
-  } catch (error) {
-    console.error('News error:', error);
-    res.json({ success: true, articles: getFallbackNews() });
-  }
-});
-
+  
 function getFallbackNews() {
   return [
     { title: "Bitcoin Surges Past $70,000", description: "BTC reaches new all-time high amid institutional demand.", url: "#", source: { name: "CoinDesk" }, publishedAt: new Date().toISOString() },
@@ -655,6 +629,39 @@ function getFallbackNews() {
     { title: "Crypto Market Cap Reaches $2.8T", description: "Total market capitalization hits 2-year high.", url: "#", source: { name: "CoinMarketCap" }, publishedAt: new Date().toISOString() }
   ];
 }
+});
+
+// ========== NEWS RSS FEED ENDPOINT ==========
+app.get('/api/news', async (req, res) => {
+  // List of working RSS feeds
+  const rssFeeds = [
+    'https://cointelegraph.com/feed',
+    'https://cryptoslate.com/feed/',
+    'https://decrypt.co/feed'
+  ];
+
+  for (const feedUrl of rssFeeds) {
+    try {
+      const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`);
+      const data = await response.json();
+      
+      if (data.status === 'ok' && data.items && data.items.length > 0) {
+        const articles = data.items.slice(0, 6).map(item => ({
+          title: item.title,
+          description: item.description.replace(/<[^>]*>/g, '').substring(0, 200),
+          url: item.link,
+          source: { name: item.author || feedUrl.split('/')[2] },
+          publishedAt: item.pubDate
+        }));
+        return res.json({ success: true, articles: articles });
+      }
+    } catch (error) {
+      console.log(`Failed to fetch from ${feedUrl}:`, error.message);
+    }
+  }
+  
+  // Fallback if all feeds fail
+  return res.json({ success: true, articles: getFallbackNews() });
 });
 
 
