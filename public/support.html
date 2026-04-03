@@ -162,9 +162,10 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - Simple chronological chat
+        // Chat Widget - Fixed duplicate messages
         let isLoggedIn = false;
         let isSending = false;
+        let lastLoadTime = 0;
         
         async function checkLoginStatus() { 
             const res = await fetch('/api/me'); 
@@ -180,9 +181,16 @@
         }
         
         async function loadChatHistory() { 
+            // Prevent multiple rapid calls
+            const now = Date.now();
+            if (now - lastLoadTime < 1000) return;
+            lastLoadTime = now;
+            
             const res = await fetch('/api/chat/my-messages'); 
             const data = await res.json(); 
             const messagesDiv = document.getElementById('chatMessages'); 
+            
+            // Clear ALL existing messages first
             messagesDiv.innerHTML = '';
             
             if (data.success && data.messages.length > 0) { 
@@ -209,7 +217,8 @@
             
             const timeSpan = document.createElement('div');
             timeSpan.className = 'msg-time';
-            timeSpan.innerText = timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const date = timestamp ? new Date(timestamp) : new Date();
+            timeSpan.innerText = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
             bubble.appendChild(textSpan);
             bubble.appendChild(timeSpan);
