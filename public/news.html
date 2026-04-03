@@ -19,7 +19,7 @@
         .news-card { background: #1E232C; border-radius: 16px; overflow: hidden; border: 1px solid #2B3139; transition: transform 0.2s; }
         .news-card:hover { transform: translateY(-4px); }
         .news-card a { text-decoration: none; color: inherit; }
-        .news-icon { width: 100%; height: 140px; background: linear-gradient(135deg, #2B3139, #1E232C); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; }
+        .news-icon { width: 100%; height: 120px; background: linear-gradient(135deg, #2B3139, #1E232C); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: bold; }
         .news-content { padding: 20px; }
         .news-source { font-size: 0.7rem; color: #F0B90B; text-transform: uppercase; margin-bottom: 8px; }
         .news-title { font-size: 1rem; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
@@ -30,7 +30,23 @@
         .footer-links { display: flex; justify-content: center; gap: 20px; margin-top: 8px; flex-wrap: wrap; }
         .footer-links a { color: #848E9C; text-decoration: none; }
         .footer-links a:hover { color: #F0B90B; }
-        @media (max-width: 768px) { .news-grid { grid-template-columns: 1fr; } }
+        
+        .chat-button { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background: #F0B90B; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; transition: transform 0.2s; }
+        .chat-button:hover { transform: scale(1.05); }
+        .chat-button span { font-size: 28px; font-weight: bold; color: #0B0E1A; }
+        .chat-widget { position: fixed; bottom: 100px; right: 24px; width: 350px; height: 500px; background: #1E232C; border-radius: 16px; border: 1px solid #2B3139; display: none; flex-direction: column; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .chat-widget.open { display: flex; }
+        .chat-header { background: #F0B90B; padding: 16px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header h4 { color: #0B0E1A; font-weight: 600; }
+        .chat-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #0B0E1A; padding: 0; width: auto; }
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .user-message-bubble { background: #2B3139; padding: 10px 14px; border-radius: 18px; max-width: 80%; align-self: flex-end; font-size: 0.85rem; }
+        .support-message-bubble { background: #0ECB8122; border-left: 3px solid #0ECB81; padding: 10px 14px; border-radius: 18px; max-width: 80%; align-self: flex-start; font-size: 0.85rem; }
+        .chat-input-area { padding: 16px; border-top: 1px solid #2B3139; display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; margin-bottom: 0; padding: 10px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; }
+        .chat-input-area button { width: auto; padding: 10px 16px; margin: 0; }
+        .chat-status { font-size: 0.7rem; color: #848E9C; text-align: center; padding: 8px; }
+        @media (max-width: 768px) { .chat-widget { width: calc(100% - 48px); right: 24px; left: 24px; height: 70vh; } }
     </style>
 </head>
 <body>
@@ -58,6 +74,14 @@
         <div id="newsContainer" class="news-grid"><div class="loading">Loading latest crypto news...</div></div>
     </div>
 
+    <div class="chat-button" id="chatButton"><span>💬</span></div>
+    <div class="chat-widget" id="chatWidget">
+        <div class="chat-header"><h4>Customer Support</h4><button class="chat-close" id="chatClose">✕</button></div>
+        <div class="chat-messages" id="chatMessages"><div class="support-message-bubble">Hello! How can I help you today?</div></div>
+        <div class="chat-status" id="chatStatus">Online - Reply within 24 hours</div>
+        <div class="chat-input-area"><input type="text" id="chatInput" placeholder="Type your message..."><button id="chatSend">Send</button></div>
+    </div>
+
     <footer>
         <p>&copy; 2026 Coinzara.org - AI Crypto Trading Platform</p>
         <div class="footer-links">
@@ -68,12 +92,58 @@
     </footer>
 
     <script>
-        const RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://www.coindesk.com/feed/';
-        function getIconForTitle(title) { const t = title.toLowerCase(); if (t.includes('bitcoin') || t.includes('btc')) return '₿'; if (t.includes('ethereum') || t.includes('eth')) return '⟠'; if (t.includes('bnb') || t.includes('binance')) return 'B'; if (t.includes('solana') || t.includes('sol')) return 'S'; if (t.includes('tron') || t.includes('trx')) return 'T'; return 'C'; }
-        async function fetchCryptoNews() { try { const res = await fetch(RSS_URL); const data = await res.json(); if (data.status === 'ok' && data.items) { displayNews(data.items.slice(0, 24)); } else { displayFallbackNews(); } } catch (error) { displayFallbackNews(); } }
-        function displayNews(items) { const container = document.getElementById('newsContainer'); let html = ''; items.forEach(item => { let description = item.description.replace(/<[^>]*>/g, '').substring(0, 150); if (description.length >= 150) description += '...'; html += `<div class="news-card"><a href="${item.link}" target="_blank"><div class="news-icon">${getIconForTitle(item.title)}</div><div class="news-content"><div class="news-source">${item.author || 'Crypto News'}</div><div class="news-title">${escapeHtml(item.title)}</div><div class="news-summary">${escapeHtml(description)}</div><div class="news-date">${new Date(item.pubDate).toLocaleDateString()}</div></div></a></div>`; }); container.innerHTML = html; }
-        function displayFallbackNews() { const fallback = [{ source: "CoinDesk", title: "Bitcoin Surges Past $70,000", summary: "BTC reaches new all-time high amid institutional demand.", date: "Today", icon: "₿" }, { source: "CoinTelegraph", title: "Ethereum Network Upgrade Complete", summary: "Gas fees reduced after successful upgrade.", date: "Today", icon: "⟠" }, { source: "CryptoSlate", title: "BNB Chain Announces New Fund", summary: "$100 million program to support DeFi developers.", date: "Yesterday", icon: "B" }, { source: "The Block", title: "Solana Hits 1 Million Daily Users", summary: "Network activity reaches all-time high.", date: "Yesterday", icon: "S" }, { source: "Decrypt", title: "Tron's USDT Supply Reaches New High", summary: "TRC-20 USDT now dominates stablecoin market.", date: "2 days ago", icon: "T" }]; const container = document.getElementById('newsContainer'); let html = ''; fallback.forEach(n => { html += `<div class="news-card"><div class="news-icon">${n.icon}</div><div class="news-content"><div class="news-source">${n.source}</div><div class="news-title">${n.title}</div><div class="news-summary">${n.summary}</div><div class="news-date">${n.date}</div></div></div>`; }); container.innerHTML = html; }
-        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+        function getIcon(title) {
+            const t = title.toLowerCase();
+            if (t.includes('bitcoin') || t.includes('btc')) return '₿';
+            if (t.includes('ethereum') || t.includes('eth')) return '⟠';
+            if (t.includes('bnb') || t.includes('binance')) return 'B';
+            if (t.includes('solana') || t.includes('sol')) return 'S';
+            if (t.includes('tron') || t.includes('trx')) return 'T';
+            return '₿';
+        }
+        
+        async function loadNews() {
+            const container = document.getElementById('newsContainer');
+            try {
+                const res = await fetch('/api/news');
+                const data = await res.json();
+                if (data.success && data.articles) {
+                    let html = '';
+                    for (let i = 0; i < Math.min(6, data.articles.length); i++) {
+                        const article = data.articles[i];
+                        const date = new Date(article.publishedAt).toLocaleDateString();
+                        html += `
+                            <div class="news-card">
+                                <a href="${article.url}" target="_blank" rel="noopener noreferrer">
+                                    <div class="news-icon">${getIcon(article.title)}</div>
+                                    <div class="news-content">
+                                        <div class="news-source">${article.source.name || 'Crypto News'}</div>
+                                        <div class="news-title">${escapeHtml(article.title)}</div>
+                                        <div class="news-summary">${escapeHtml(article.description || 'Click to read full article')}</div>
+                                        <div class="news-date">${date}</div>
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                    }
+                    container.innerHTML = html;
+                } else {
+                    throw new Error('No news');
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="loading">Unable to load news. Please try again later.</div>';
+            }
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
         
         function showLogoutConfirm() {
             const modal = document.createElement('div');
@@ -104,7 +174,22 @@
         }
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
-        fetchCryptoNews();
+        
+        let isLoggedIn = false;
+        let isSending = false;
+        
+        async function checkLoginStatus() { const res = await fetch('/api/me'); const data = await res.json(); isLoggedIn = data.loggedIn; if (isLoggedIn) { loadChatHistory(); } else { document.getElementById('chatStatus').innerHTML = 'Please login to chat with support'; document.getElementById('chatInput').disabled = true; document.getElementById('chatSend').disabled = true; } }
+        async function loadChatHistory() { const res = await fetch('/api/chat/my-messages'); const data = await res.json(); if (data.success && data.messages.length > 0) { const messagesDiv = document.getElementById('chatMessages'); if (messagesDiv.children.length === 1 && messagesDiv.children[0].innerText.includes('Hello')) { messagesDiv.innerHTML = ''; } data.messages.forEach(msg => { addMessageToChat(msg.message, false); if (msg.reply) { addMessageToChat(msg.reply, true); } }); } }
+        function addMessageToChat(message, isSupport) { const messagesDiv = document.getElementById('chatMessages'); const bubble = document.createElement('div'); bubble.className = isSupport ? 'support-message-bubble' : 'user-message-bubble'; bubble.innerText = message; messagesDiv.appendChild(bubble); messagesDiv.scrollTop = messagesDiv.scrollHeight; }
+        async function sendMessage() { if (!isLoggedIn) { alert('Please login to send a message'); window.location.href = 'login.html'; return; } if (isSending) return; const input = document.getElementById('chatInput'); const message = input.value.trim(); if (!message) return; isSending = true; addMessageToChat(message, false); input.value = ''; const res = await fetch('/api/chat/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) }); const data = await res.json(); if (!data.success) { alert(data.error); addMessageToChat('Failed to send. Please try again.', true); } isSending = false; }
+        
+        const chatButton = document.getElementById('chatButton'); const chatWidget = document.getElementById('chatWidget'); const chatClose = document.getElementById('chatClose'); const chatSend = document.getElementById('chatSend'); const chatInput = document.getElementById('chatInput');
+        chatButton.addEventListener('click', () => { chatWidget.classList.toggle('open'); if (isLoggedIn) { loadChatHistory(); } });
+        chatClose.addEventListener('click', () => { chatWidget.classList.remove('open'); });
+        chatSend.addEventListener('click', sendMessage); chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !isSending) { e.preventDefault(); sendMessage(); } });
+        checkLoginStatus(); setInterval(() => { if (isLoggedIn && chatWidget.classList.contains('open')) { loadChatHistory(); } }, 15000);
+        
+        loadNews();
     </script>
 </body>
 </html>
