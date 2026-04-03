@@ -356,18 +356,13 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  // Calculate fee (10%)
   const fullProfit = parseFloat(aiProfit);
   const fee = fullProfit * 0.1;
   const netProfit = fullProfit - fee;
   
-  // Update AI profit display (full amount)
   user.aiProfit = fullProfit;
-  
-  // Add net profit to balance (after fee)
   user.balance += netProfit;
   
-  // Add daily snapshot
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
   
@@ -500,7 +495,6 @@ app.post('/api/admin/approve-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal approved and balance updated' });
 });
-
 // ========== ADMIN - REJECT WITHDRAWAL ==========
 app.post('/api/admin/reject-withdrawal', async (req, res) => {
   const { adminEmail, adminPassword, requestId } = req.body;
@@ -564,6 +558,7 @@ app.post('/api/request-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
+
 // ========== ADMIN - UPDATE PLATFORM STATS ==========
 app.post('/api/admin/update-stats', async (req, res) => {
   const { adminEmail, adminPassword, totalUserBalances, totalBTCHeld, totalETHHeld, totalBNBHeld, totalSOLHeld, totalTRONHeld, aiTradingVolume, totalTrades, monthlyReturn, historicalReserves } = req.body;
@@ -617,8 +612,45 @@ app.get('/api/admin/stats', async (req, res) => {
 app.get('/api/platform-stats', async (req, res) => {
   const stats = await PlatformStats.findOne();
   res.json({ success: true, stats });
+});
 
-  
+// ========== NEWS RSS FEED ENDPOINT ==========
+app.get('/api/news', async (req, res) => {
+  try {
+    const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://cointelegraph.com/feed');
+    const data = await response.json();
+    
+    if (data.status === 'ok' && data.items && data.items.length > 0) {
+      const articles = data.items.slice(0, 6).map(item => ({
+        title: item.title,
+        description: item.description.replace(/<[^>]*>/g, '').substring(0, 200),
+        url: item.link,
+        source: { name: 'CoinTelegraph' },
+        publishedAt: item.pubDate
+      }));
+      res.json({ success: true, articles: articles });
+    } else {
+      const response2 = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://cryptoslate.com/feed/');
+      const data2 = await response2.json();
+      if (data2.status === 'ok' && data2.items) {
+        const articles = data2.items.slice(0, 6).map(item => ({
+          title: item.title,
+          description: item.description.replace(/<[^>]*>/g, '').substring(0, 200),
+          url: item.link,
+          source: { name: 'CryptoSlate' },
+          publishedAt: item.pubDate
+        }));
+        res.json({ success: true, articles: articles });
+      } else {
+        res.json({ success: true, articles: getFallbackNews() });
+      }
+    }
+  } catch (error) {
+    console.error('News error:', error);
+    res.json({ success: true, articles: getFallbackNews() });
+  }
+});
+
 function getFallbackNews() {
   return [
     { title: "Bitcoin Surges Past $70,000", description: "BTC reaches new all-time high amid institutional demand.", url: "#", source: { name: "CoinDesk" }, publishedAt: new Date().toISOString() },
@@ -629,41 +661,6 @@ function getFallbackNews() {
     { title: "Crypto Market Cap Reaches $2.8T", description: "Total market capitalization hits 2-year high.", url: "#", source: { name: "CoinMarketCap" }, publishedAt: new Date().toISOString() }
   ];
 }
-});
-
-// ========== NEWS RSS FEED ENDPOINT ==========
-app.get('/api/news', async (req, res) => {
-  // List of working RSS feeds
-  const rssFeeds = [
-    'https://cointelegraph.com/feed',
-    'https://cryptoslate.com/feed/',
-    'https://decrypt.co/feed'
-  ];
-
-  for (const feedUrl of rssFeeds) {
-    try {
-      const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`);
-      const data = await response.json();
-      
-      if (data.status === 'ok' && data.items && data.items.length > 0) {
-        const articles = data.items.slice(0, 6).map(item => ({
-          title: item.title,
-          description: item.description.replace(/<[^>]*>/g, '').substring(0, 200),
-          url: item.link,
-          source: { name: item.author || feedUrl.split('/')[2] },
-          publishedAt: item.pubDate
-        }));
-        return res.json({ success: true, articles: articles });
-      }
-    } catch (error) {
-      console.log(`Failed to fetch from ${feedUrl}:`, error.message);
-    }
-  }
-  
-  // Fallback if all feeds fail
-  return res.json({ success: true, articles: getFallbackNews() });
-});
-
 
 // ========== CHAT ROUTES ==========
 app.post('/api/chat/send', async (req, res) => {
@@ -702,7 +699,7 @@ app.get('/api/admin/chat/messages', async (req, res) => {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const messages = await ChatMessage.find().sort({ createdAt: -1 });
+  const messages = await ChatMessage.find().sort({ createdAt: 1 });
   res.json({ success: true, messages });
 });
 
