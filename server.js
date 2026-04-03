@@ -343,7 +343,7 @@ app.post('/api/admin/add-withdrawal', async (req, res) => {
   res.json({ success: true, newBalance: user.balance });
 });
 
-// ========== ADMIN - UPDATE AI PROFIT ==========
+// ========== ADMIN - UPDATE AI PROFIT (WITH 10% FEE) ==========
 app.post('/api/admin/update-ai-profit', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiProfit } = req.body;
   
@@ -356,16 +356,30 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  const oldProfit = user.aiProfit;
-  user.aiProfit = parseFloat(aiProfit);
-  const changeAmount = user.aiProfit - oldProfit;
-  user.balance += changeAmount;
+  // Calculate fee (10%)
+  const fullProfit = parseFloat(aiProfit);
+  const fee = fullProfit * 0.1;
+  const netProfit = fullProfit - fee;
   
+  // Update AI profit display (full amount)
+  user.aiProfit = fullProfit;
+  
+  // Add net profit to balance (after fee)
+  user.balance += netProfit;
+  
+  // Add daily snapshot
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
   
   await user.save();
-  res.json({ success: true, newAiProfit: user.aiProfit, newBalance: user.balance });
+  
+  res.json({ 
+    success: true, 
+    newAiProfit: user.aiProfit, 
+    newBalance: user.balance,
+    fee: fee,
+    netProfit: netProfit
+  });
 });
 
 // ========== ADMIN - DELETE USER ==========
@@ -381,12 +395,12 @@ app.post('/api/admin/delete-user', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  // Delete user's chat messages
   await ChatMessage.deleteMany({ userId: user._id });
   
   const result = await User.findOneAndDelete({ email: userEmail });
   res.json({ success: true, message: 'User deleted successfully' });
 });
+
 // ========== ADMIN - GET USER TRANSACTIONS ==========
 app.get('/api/admin/user-transactions', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.query;
@@ -550,7 +564,6 @@ app.post('/api/request-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
-
 // ========== ADMIN - UPDATE PLATFORM STATS ==========
 app.post('/api/admin/update-stats', async (req, res) => {
   const { adminEmail, adminPassword, totalUserBalances, totalBTCHeld, totalETHHeld, totalBNBHeld, totalSOLHeld, totalTRONHeld, aiTradingVolume, totalTrades, monthlyReturn, historicalReserves } = req.body;
@@ -604,6 +617,28 @@ app.get('/api/admin/stats', async (req, res) => {
 app.get('/api/platform-stats', async (req, res) => {
   const stats = await PlatformStats.findOne();
   res.json({ success: true, stats });
+});
+
+// ========== NEWS API ENDPOINT ==========
+app.get('/api/news', async (req, res) => {
+  const NEWS_API_KEY = process.env.NEWS_API_KEY;
+  
+  if (!NEWS_API_KEY) {
+    return res.json({ success: false, error: 'News API key not configured' });
+  }
+  
+  try {
+    const response = await fetch(`https://newsapi.org/v2/everything?q=cryptocurrency OR bitcoin OR ethereum&language=en&pageSize=6&apiKey=${NEWS_API_KEY}`);
+    const data = await response.json();
+    
+    if (data.status === 'ok') {
+      res.json({ success: true, articles: data.articles });
+    } else {
+      res.json({ success: false, error: data.message });
+    }
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
 });
 
 // ========== CHAT ROUTES ==========
