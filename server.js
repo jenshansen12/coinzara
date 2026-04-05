@@ -19,7 +19,7 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// User Schema with aiLoss field
+// User Schema with aiLoss field added
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, unique: true, required: true },
@@ -150,8 +150,6 @@ app.post('/api/signup', async (req, res) => {
       securityQuestion: { question: securityQ1, answer: hashedAnswer },
       plainSecurityAnswer: securityA1,
       emailVerified: true,
-      aiProfit: 0,
-      aiLoss: 0,
       dailySnapshots: [{ date: new Date(), balance: 0 }]
     });
     
@@ -347,7 +345,7 @@ app.post('/api/admin/add-withdrawal', async (req, res) => {
   res.json({ success: true, newBalance: user.balance });
 });
 
-// ========== ADMIN - UPDATE AI PROFIT (10% FEE, ADD ONLY) ==========
+// ========== ADMIN - UPDATE AI PROFIT (WITH 10% FEE) ==========
 app.post('/api/admin/update-ai-profit', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiProfit } = req.body;
   
@@ -360,25 +358,12 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  const profitAmount = parseFloat(aiProfit);
-  if (profitAmount < 0) {
-    return res.json({ success: false, error: 'AI Profit cannot be negative. Use AI Loss endpoint for losses.' });
-  }
+  const fullProfit = parseFloat(aiProfit);
+  const fee = fullProfit * 0.1;
+  const netProfit = fullProfit - fee;
   
-  const fee = profitAmount * 0.1;
-  const netProfit = profitAmount - fee;
-  
-  user.aiProfit = (user.aiProfit || 0) + profitAmount;
+  user.aiProfit = (user.aiProfit || 0) + fullProfit;
   user.balance += netProfit;
-  
-  user.transactionHistory.unshift({
-    date: new Date(),
-    type: 'AI Profit',
-    amount: netProfit,
-    balance: user.balance,
-    reason: `AI Profit: $${profitAmount} (Fee: $${fee})`,
-    status: 'completed'
-  });
   
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
@@ -408,10 +393,6 @@ app.post('/api/admin/add-ai-loss', async (req, res) => {
   }
   
   const lossAmount = parseFloat(aiLoss);
-  if (lossAmount < 0) {
-    return res.json({ success: false, error: 'AI Loss must be a positive number' });
-  }
-  
   user.aiLoss = (user.aiLoss || 0) + lossAmount;
   user.balance -= lossAmount;
   
@@ -420,7 +401,7 @@ app.post('/api/admin/add-ai-loss', async (req, res) => {
     type: 'AI Loss',
     amount: -lossAmount,
     balance: user.balance,
-    reason: `AI Loss: $${lossAmount} (No fee)`,
+    reason: `AI Loss: $${lossAmount}`,
     status: 'completed'
   });
   
@@ -432,7 +413,6 @@ app.post('/api/admin/add-ai-loss', async (req, res) => {
   res.json({ 
     success: true, 
     newAiLoss: user.aiLoss,
-    newAiProfit: user.aiProfit,
     newBalance: user.balance,
     lossAmount: lossAmount
   });
@@ -744,7 +724,6 @@ app.post('/api/chat/send', async (req, res) => {
   res.json({ success: true, message: 'Message sent. Support will reply soon.' });
 });
 
-// IMPORTANT: Sorted by createdAt (oldest first) for correct chronological order
 app.get('/api/chat/my-messages', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
@@ -777,7 +756,6 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     return res.json({ success: false, error: 'Message not found' });
   }
   
-  // Prevent duplicate replies
   if (message.reply && message.reply.trim()) {
     return res.json({ success: false, error: 'This message already has a reply' });
   }
