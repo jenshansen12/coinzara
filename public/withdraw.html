@@ -137,14 +137,17 @@
             const data = await res.json(); 
             if (data.loggedIn) { 
                 userData = data;
-                const depositAmount = data.balance - data.aiProfit;
-                const aiProfitFull = data.aiProfit;
-                const feeAmount = aiProfitFull * 0.1;
-                const availableBalance = depositAmount + (aiProfitFull - feeAmount);
+                // CORRECT CALCULATION:
+                // Deposit amount = balance - net profit (AI profit after 10% fee)
+                // Net profit = AI profit - (AI profit * 0.1)
+                const feeAmount = data.aiProfit * 0.1;
+                const netProfit = data.aiProfit - feeAmount;
+                const depositAmount = data.balance - netProfit;
+                const availableBalance = data.balance;
                 
                 document.getElementById('availableBalance').innerText = availableBalance.toFixed(2);
                 document.getElementById('depositAmount').innerText = depositAmount.toFixed(2);
-                document.getElementById('aiProfitFull').innerText = aiProfitFull.toFixed(2);
+                document.getElementById('aiProfitFull').innerText = data.aiProfit.toFixed(2);
                 document.getElementById('feeAmount').innerText = feeAmount.toFixed(2);
                 document.getElementById('withdrawTotal').innerText = availableBalance.toFixed(2);
             } else { 
