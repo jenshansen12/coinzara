@@ -20,6 +20,9 @@ app.use(session({
 }));
 
 // ========== CLEAN URL ROUTES (no .html) ==========
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
@@ -62,8 +65,11 @@ app.get('/login', (req, res) => {
 app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
 });
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/captcha', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'captcha.html'));
+});
+app.get('/terms-agreement', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'terms-agreement.html'));
 });
 
 // User Schema
