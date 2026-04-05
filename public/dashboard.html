@@ -118,7 +118,7 @@
                 <h3>30-Day Portfolio Performance</h3>
                 <canvas id="performanceChart" width="400" height="200"></canvas>
                 <div style="margin-top: 12px; text-align: center; font-size: 0.8rem; color: #0ECB81;">
-                    P&L: <span id="pnlPercent">0</span>%
+                    P&L: <span id="pnlPercent">0.00</span>%
                 </div>
             </div>
             
@@ -220,9 +220,52 @@
             const ctx = document.getElementById('performanceChart').getContext('2d');
             const labels = snapshots.map(s => new Date(s.date).toLocaleDateString());
             const data = snapshots.map(s => s.balance);
+            
+            // Destroy existing chart if any
             if (chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: 'Portfolio Value', data: data, borderColor: '#F0B90B', backgroundColor: 'rgba(240,185,11,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#EAECEF' } } }, scales: { y: { ticks: { color: '#EAECEF' }, grid: { color: '#2B3139' } }, x: { ticks: { color: '#EAECEF' }, grid: { color: '#2B3139' } } } } });
-            if (data.length >= 2) { const pnl = ((data[data.length-1] - data[0]) / data[0] * 100).toFixed(2); document.getElementById('pnlPercent').innerText = pnl; }
+            
+            // Create new chart
+            chart = new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: 'Portfolio Value', 
+                        data: data, 
+                        borderColor: '#F0B90B', 
+                        backgroundColor: 'rgba(240,185,11,0.1)', 
+                        fill: true, 
+                        tension: 0.3 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: true, 
+                    plugins: { 
+                        legend: { labels: { color: '#EAECEF' } } 
+                    }, 
+                    scales: { 
+                        y: { ticks: { color: '#EAECEF' }, grid: { color: '#2B3139' } }, 
+                        x: { ticks: { color: '#EAECEF' }, grid: { color: '#2B3139' } } 
+                    } 
+                } 
+            });
+            
+            // Calculate P&L - FIXED: No more Infinity
+            if (data.length >= 2) {
+                const firstBalance = data[0];
+                const lastBalance = data[data.length - 1];
+                if (firstBalance !== 0 && firstBalance !== null) {
+                    const pnl = ((lastBalance - firstBalance) / firstBalance * 100).toFixed(2);
+                    document.getElementById('pnlPercent').innerText = pnl;
+                } else if (firstBalance === 0 && lastBalance > 0) {
+                    document.getElementById('pnlPercent').innerText = '100.00';
+                } else {
+                    document.getElementById('pnlPercent').innerText = '0.00';
+                }
+            } else {
+                document.getElementById('pnlPercent').innerText = '0.00';
+            }
         }
         
         async function loadUserData() {
@@ -236,9 +279,20 @@
                 document.getElementById('referralCode').innerText = data.referralCode || 'Generating...';
                 document.getElementById('referralCount').innerText = data.referralCount || 0;
                 document.getElementById('referralBonus').innerText = (data.referralBonus || 0).toFixed(2);
-                if (data.dailySnapshots && data.dailySnapshots.length > 0) { drawPerformanceChart(data.dailySnapshots); }
-                if (!data.welcomeShown) { document.getElementById('welcomeModal').style.display = 'flex'; fetch('/api/update-welcome', { method: 'POST' }); }
-            } else { window.location.href = '/login'; }
+                if (data.dailySnapshots && data.dailySnapshots.length > 0) { 
+                    drawPerformanceChart(data.dailySnapshots); 
+                } else {
+                    // Initialize with current balance if no snapshots exist
+                    const initialSnapshot = [{ date: new Date(), balance: data.balance }];
+                    drawPerformanceChart(initialSnapshot);
+                }
+                if (!data.welcomeShown) { 
+                    document.getElementById('welcomeModal').style.display = 'flex'; 
+                    fetch('/api/update-welcome', { method: 'POST' }); 
+                }
+            } else { 
+                window.location.href = '/login'; 
+            }
         }
         
         async function loadPlatformStats() {
