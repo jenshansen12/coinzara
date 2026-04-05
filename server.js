@@ -19,60 +19,7 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// ========== CLEAN URL ROUTES (no .html) ==========
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-app.get('/deposit', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'deposit.html'));
-});
-app.get('/withdraw', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'withdraw.html'));
-});
-app.get('/settings', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
-});
-app.get('/learn', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'learn.html'));
-});
-app.get('/news', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'news.html'));
-});
-app.get('/support', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'support.html'));
-});
-app.get('/history', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'transaction-history.html'));
-});
-app.get('/reserves', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'proof-of-reserves.html'));
-});
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-app.get('/chat-admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'chat-admin.html'));
-});
-app.get('/terms', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'terms.html'));
-});
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-app.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
-});
-app.get('/captcha', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'captcha.html'));
-});
-app.get('/terms-agreement', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'terms-agreement.html'));
-});
-
-// User Schema
+// User Schema with aiLoss field
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, unique: true, required: true },
@@ -88,6 +35,7 @@ const userSchema = new mongoose.Schema({
   referralBonus: { type: Number, default: 0 },
   balance: { type: Number, default: 0 },
   aiProfit: { type: Number, default: 0 },
+  aiLoss: { type: Number, default: 0 },
   transactionHistory: { type: Array, default: [] },
   emailVerified: { type: Boolean, default: false },
   agreedToTerms: { type: Boolean, default: false },
@@ -202,6 +150,8 @@ app.post('/api/signup', async (req, res) => {
       securityQuestion: { question: securityQ1, answer: hashedAnswer },
       plainSecurityAnswer: securityA1,
       emailVerified: true,
+      aiProfit: 0,
+      aiLoss: 0,
       dailySnapshots: [{ date: new Date(), balance: 0 }]
     });
     
@@ -296,6 +246,7 @@ app.get('/api/me', async (req, res) => {
     country: user.country,
     balance: user.balance,
     aiProfit: user.aiProfit,
+    aiLoss: user.aiLoss,
     referralCode: user.referralCode,
     referralCount: user.referralCount,
     referralBonus: user.referralBonus,
@@ -396,7 +347,7 @@ app.post('/api/admin/add-withdrawal', async (req, res) => {
   res.json({ success: true, newBalance: user.balance });
 });
 
-// ========== ADMIN - UPDATE AI PROFIT (WITH 10% FEE) ==========
+// ========== ADMIN - UPDATE AI PROFIT (10% FEE, ADD ONLY) ==========
 app.post('/api/admin/update-ai-profit', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiProfit } = req.body;
   
@@ -409,12 +360,25 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
     return res.json({ success: false, error: 'User not found' });
   }
   
-  const fullProfit = parseFloat(aiProfit);
-  const fee = fullProfit * 0.1;
-  const netProfit = fullProfit - fee;
+  const profitAmount = parseFloat(aiProfit);
+  if (profitAmount < 0) {
+    return res.json({ success: false, error: 'AI Profit cannot be negative. Use AI Loss endpoint for losses.' });
+  }
   
-  user.aiProfit = fullProfit;
+  const fee = profitAmount * 0.1;
+  const netProfit = profitAmount - fee;
+  
+  user.aiProfit = (user.aiProfit || 0) + profitAmount;
   user.balance += netProfit;
+  
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'AI Profit',
+    amount: netProfit,
+    balance: user.balance,
+    reason: `AI Profit: $${profitAmount} (Fee: $${fee})`,
+    status: 'completed'
+  });
   
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
@@ -430,6 +394,49 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
   });
 });
 
+// ========== ADMIN - ADD AI LOSS (NO FEE) ==========
+app.post('/api/admin/add-ai-loss', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail, aiLoss } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const user = await User.findOne({ email: userEmail });
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+  
+  const lossAmount = parseFloat(aiLoss);
+  if (lossAmount < 0) {
+    return res.json({ success: false, error: 'AI Loss must be a positive number' });
+  }
+  
+  user.aiLoss = (user.aiLoss || 0) + lossAmount;
+  user.balance -= lossAmount;
+  
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'AI Loss',
+    amount: -lossAmount,
+    balance: user.balance,
+    reason: `AI Loss: $${lossAmount} (No fee)`,
+    status: 'completed'
+  });
+  
+  user.dailySnapshots.push({ date: new Date(), balance: user.balance });
+  if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
+  
+  await user.save();
+  
+  res.json({ 
+    success: true, 
+    newAiLoss: user.aiLoss,
+    newAiProfit: user.aiProfit,
+    newBalance: user.balance,
+    lossAmount: lossAmount
+  });
+});
 // ========== ADMIN - DELETE USER ==========
 app.post('/api/admin/delete-user', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.body;
@@ -548,6 +555,7 @@ app.post('/api/admin/approve-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal approved and balance updated' });
 });
+
 // ========== ADMIN - REJECT WITHDRAWAL ==========
 app.post('/api/admin/reject-withdrawal', async (req, res) => {
   const { adminEmail, adminPassword, requestId } = req.body;
@@ -645,7 +653,7 @@ app.get('/api/admin/users', async (req, res) => {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const users = await User.find({}, 'fullName email country balance aiProfit referralCode referralCount referralBonus emailVerified createdAt');
+  const users = await User.find({}, 'fullName email country balance aiProfit aiLoss referralCode referralCount referralBonus emailVerified createdAt');
   res.json({ success: true, users });
 });
 
@@ -736,6 +744,7 @@ app.post('/api/chat/send', async (req, res) => {
   res.json({ success: true, message: 'Message sent. Support will reply soon.' });
 });
 
+// IMPORTANT: Sorted by createdAt (oldest first) for correct chronological order
 app.get('/api/chat/my-messages', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
@@ -768,6 +777,7 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     return res.json({ success: false, error: 'Message not found' });
   }
   
+  // Prevent duplicate replies
   if (message.reply && message.reply.trim()) {
     return res.json({ success: false, error: 'This message already has a reply' });
   }
