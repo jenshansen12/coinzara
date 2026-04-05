@@ -17,7 +17,7 @@
         .checkbox-container label { font-size: 1rem; cursor: pointer; color: #EAECEF; }
         .checkbox-container.verified { background: #0ECB8122; border: 1px solid #0ECB81; }
         .checkbox-container.verified label { color: #0ECB81; }
-        .captcha-status { font-size: 0.75rem; color: #848E9C; }
+        .captcha-status { font-size: 0.75rem; color: #848E9C; margin-top: 8px; }
         .captcha-status.verified { color: #0ECB81; }
         .verify-btn { width: 100%; background: #F0B90B; color: #0B0E1A; border: none; padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
         .verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -74,7 +74,7 @@
             const signupData = sessionStorage.getItem('signupData');
             if (!signupData) {
                 errorMsg.innerText = 'Session expired. Please go back and sign up again.';
-                setTimeout(() => { window.location.href = 'signup.html'; }, 2000);
+                setTimeout(() => { window.location.href = '/signup'; }, 2000);
                 return;
             }
             
@@ -86,8 +86,7 @@
             errorMsg.innerText = '';
             
             const res = await fetch('/api/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             
@@ -96,7 +95,7 @@
             if (result.success) {
                 sessionStorage.removeItem('signupData');
                 loadingMsg.innerHTML = 'Account created! Redirecting...';
-                setTimeout(() => { window.location.href = 'terms-agreement.html'; }, 1500);
+                setTimeout(() => { window.location.href = '/terms-agreement'; }, 1500);
             } else {
                 loadingMsg.style.display = 'none';
                 verifyBtn.disabled = false;

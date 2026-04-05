@@ -21,9 +21,6 @@
         .footer { text-align: center; margin-top: 40px; color: #848E9C; font-size: 0.7rem; }
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
         .badge-referral { background: #0ECB8122; color: #0ECB81; }
-        .badge-pending { background: #F0B90B22; color: #F0B90B; }
-        .badge-approved { background: #0ECB8122; color: #0ECB81; }
-        .badge-rejected { background: #F6465D22; color: #F6465D; }
         label { display: block; color: #848E9C; font-size: 0.75rem; margin-bottom: 4px; }
         @media (max-width: 768px) { th, td { padding: 6px 4px; font-size: 0.65rem; } }
     </style>
@@ -34,11 +31,6 @@
         <div id="adminLogin" class="login-box"><h3>Administrator Access</h3><input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org"><input type="password" id="adminPassword" placeholder="Admin Password"><button onclick="adminLogin()">Login</button><div id="loginMsg"></div></div>
         
         <div id="adminPanel" style="display:none;">
-            <!-- Pending Withdrawal Requests Section -->
-            <div class="admin-box"><h3>Pending Withdrawal Requests</h3>
-                <div id="withdrawalRequestsList">Loading requests...</div>
-            </div>
-            
             <div class="admin-box"><h3>Add Deposit</h3><label>User Email</label><input type="email" id="depositEmail" placeholder="User Email"><label>Deposit Amount (USD)</label><input type="number" id="depositAmount" placeholder="Deposit Amount (USD)"><label>Reason</label><input type="text" id="depositReason" placeholder="Reason (e.g., BTC Deposit)"><button onclick="addDeposit()">Add Deposit</button><div id="depositMsg"></div></div>
             
             <div class="admin-box"><h3>Add Withdrawal</h3><label>User Email</label><input type="email" id="withdrawalEmail" placeholder="User Email"><label>Withdrawal Amount (USD)</label><input type="number" id="withdrawalAmount" placeholder="Withdrawal Amount (USD)"><label>Reason</label><input type="text" id="withdrawalReason" placeholder="Reason (e.g., BTC Withdrawal)"><button onclick="addWithdrawal()">Add Withdrawal</button><div id="withdrawalMsg"></div></div>
@@ -85,147 +77,69 @@
         </div>
         <div class="footer">&copy; 2026 Coinzara.org | Admin Panel</div>
     </div>
-    <script>
-    let historicalMonths = [];
-    
-    async function adminLogin() {
-        const email = document.getElementById('adminEmail').value;
-        const password = document.getElementById('adminPassword').value;
-        if (email === 'admin@coinzara.org' && password === '419123') {
-            document.getElementById('adminLogin').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-            loadUsers();
-            loadPlatformStats();
-            loadHistoricalReserves();
-            loadWithdrawalRequests();
-        } else {
-            document.getElementById('loginMsg').innerHTML = '<div class="error">Invalid credentials</div>';
-        }
-    }
-    
-    // ========== WITHDRAWAL REQUESTS ==========
-    async function loadWithdrawalRequests() {
-        const adminEmail = document.getElementById('adminEmail').value;
-        const adminPassword = document.getElementById('adminPassword').value;
-        const res = await fetch(`/api/admin/withdrawal-requests?adminEmail=${adminEmail}&adminPassword=${adminPassword}`);
-        const data = await res.json();
+        <script>
+        let historicalMonths = [];
         
-        if (data.success && data.requests) {
-            const pending = data.requests.filter(r => r.status === 'pending');
-            const container = document.getElementById('withdrawalRequestsList');
-            
-            if (pending.length === 0) {
-                container.innerHTML = '<div class="success">No pending withdrawal requests</div>';
-                return;
+        async function adminLogin() {
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+            if (email === 'admin@coinzara.org' && password === '419123') {
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                loadUsers();
+                loadPlatformStats();
+                loadHistoricalReserves();
+            } else {
+                document.getElementById('loginMsg').innerHTML = '<div class="error">Invalid credentials</div>';
             }
-            
-            let html = '<div style="overflow-x: auto;"><table style="width:100%;"><thead><tr><th>Date</th><th>User</th><th>Email</th><th>Network</th><th>Amount</th><th>Wallet Address</th><th>Actions</th></tr></thead><tbody>';
-            pending.forEach(req => {
-                html += `<tr>
-                    <td>${new Date(req.createdAt).toLocaleString()}</td>
-                    <td>${escapeHtml(req.userName)}</td>
-                    <td>${escapeHtml(req.userEmail)}</td>
-                    <td>${escapeHtml(req.network)}</td>
-                    <td>$${req.amount.toFixed(2)}</td>
-                    <td style="word-break:break-all;">${escapeHtml(req.walletAddress)}</td>
-                    <td>
-                        <button onclick="approveWithdrawal('${req._id}')" style="background:#0ECB81; margin-right:5px;">Approve</button>
-                        <button onclick="rejectWithdrawal('${req._id}')" style="background:#F6465D;">Reject</button>
-                    </td>
-                </tr>`;
+        }
+        
+        async function addDeposit() {
+            const userEmail = document.getElementById('depositEmail').value;
+            const amount = document.getElementById('depositAmount').value;
+            const reason = document.getElementById('depositReason').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail || !amount) { alert('Please fill user email and amount'); return; }
+            const res = await fetch('/api/admin/add-deposit', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
             });
-            html += '</tbody></table></div>';
-            container.innerHTML = html;
-        } else {
-            document.getElementById('withdrawalRequestsList').innerHTML = '<div class="error">Failed to load requests</div>';
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('depositMsg').innerHTML = `<div class="success">Deposit added! New balance: $${data.newBalance}</div>`;
+                loadUsers();
+                document.getElementById('depositEmail').value = '';
+                document.getElementById('depositAmount').value = '';
+                document.getElementById('depositReason').value = '';
+            } else {
+                document.getElementById('depositMsg').innerHTML = `<div class="error">${data.error}</div>`;
+            }
         }
-    }
-    
-    async function approveWithdrawal(requestId) {
-        const adminEmail = document.getElementById('adminEmail').value;
-        const adminPassword = document.getElementById('adminPassword').value;
-        if (!confirm('Approve this withdrawal request? The user balance will be deducted.')) return;
-        const res = await fetch('/api/admin/approve-withdrawal', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminEmail, adminPassword, requestId })
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert('Withdrawal approved successfully');
-            loadWithdrawalRequests();
-            loadUsers();
-        } else {
-            alert('Error: ' + data.error);
+        
+        async function addWithdrawal() {
+            const userEmail = document.getElementById('withdrawalEmail').value;
+            const amount = document.getElementById('withdrawalAmount').value;
+            const reason = document.getElementById('withdrawalReason').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail || !amount) { alert('Please fill user email and amount'); return; }
+            const res = await fetch('/api/admin/add-withdrawal', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('withdrawalMsg').innerHTML = `<div class="success">Withdrawal added! New balance: $${data.newBalance}</div>`;
+                loadUsers();
+                document.getElementById('withdrawalEmail').value = '';
+                document.getElementById('withdrawalAmount').value = '';
+                document.getElementById('withdrawalReason').value = '';
+            } else {
+                document.getElementById('withdrawalMsg').innerHTML = `<div class="error">${data.error}</div>`;
+            }
         }
-    }
-    
-    async function rejectWithdrawal(requestId) {
-        const adminEmail = document.getElementById('adminEmail').value;
-        const adminPassword = document.getElementById('adminPassword').value;
-        if (!confirm('Reject this withdrawal request?')) return;
-        const res = await fetch('/api/admin/reject-withdrawal', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminEmail, adminPassword, requestId })
-        });
-        const data = await res.json();
-        if (data.success) {
-            alert('Withdrawal rejected');
-            loadWithdrawalRequests();
-        } else {
-            alert('Error: ' + data.error);
-        }
-    }
-    
-    // ========== DEPOSIT ==========
-    async function addDeposit() {
-        const userEmail = document.getElementById('depositEmail').value;
-        const amount = document.getElementById('depositAmount').value;
-        const reason = document.getElementById('depositReason').value;
-        const adminEmail = document.getElementById('adminEmail').value;
-        const adminPassword = document.getElementById('adminPassword').value;
-        if (!userEmail || !amount) { alert('Please fill user email and amount'); return; }
-        const res = await fetch('/api/admin/add-deposit', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('depositMsg').innerHTML = `<div class="success">Deposit added! New balance: $${data.newBalance}</div>`;
-            loadUsers();
-            document.getElementById('depositEmail').value = '';
-            document.getElementById('depositAmount').value = '';
-            document.getElementById('depositReason').value = '';
-        } else {
-            document.getElementById('depositMsg').innerHTML = `<div class="error">${data.error}</div>`;
-        }
-    }
-    
-    // ========== WITHDRAWAL (Manual) ==========
-    async function addWithdrawal() {
-        const userEmail = document.getElementById('withdrawalEmail').value;
-        const amount = document.getElementById('withdrawalAmount').value;
-        const reason = document.getElementById('withdrawalReason').value;
-        const adminEmail = document.getElementById('adminEmail').value;
-        const adminPassword = document.getElementById('adminPassword').value;
-        if (!userEmail || !amount) { alert('Please fill user email and amount'); return; }
-        const res = await fetch('/api/admin/add-withdrawal', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminEmail, adminPassword, userEmail, amount: parseFloat(amount), reason })
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById('withdrawalMsg').innerHTML = `<div class="success">Withdrawal added! New balance: $${data.newBalance}</div>`;
-            loadUsers();
-            document.getElementById('withdrawalEmail').value = '';
-            document.getElementById('withdrawalAmount').value = '';
-            document.getElementById('withdrawalReason').value = '';
-        } else {
-            document.getElementById('withdrawalMsg').innerHTML = `<div class="error">${data.error}</div>`;
-        }
-    }
-            // ========== AI PROFIT ==========
+        
         async function updateAiProfit() {
             const userEmail = document.getElementById('aiUserEmail').value;
             const aiProfit = document.getElementById('aiProfitAmount').value;
@@ -247,7 +161,6 @@
             }
         }
         
-        // ========== DELETE USER ==========
         async function deleteUser() {
             const userEmail = document.getElementById('deleteUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
@@ -268,7 +181,6 @@
             }
         }
         
-        // ========== USER TRANSACTIONS ==========
         async function loadUserTransactions() {
             const userEmail = document.getElementById('txUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
@@ -299,7 +211,6 @@
             }
         }
         
-        // ========== USER DETAILS (Password Reset) ==========
         async function loadUserDetails() {
             const userEmail = document.getElementById('resetUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
@@ -328,7 +239,6 @@
             alert('Copied to clipboard');
         }
         
-        // ========== PLATFORM STATS ==========
         async function updatePlatformStats() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
@@ -377,7 +287,6 @@
             }
         }
         
-        // ========== HISTORICAL RESERVES ==========
         function renderHistoricalMonths() {
             const container = document.getElementById('historicalReservesContainer');
             let html = '';
@@ -426,18 +335,6 @@
             }
         }
         
-        async function loadHistoricalReserves() {
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            const res = await fetch(`/api/admin/stats?email=${adminEmail}&password=${adminPassword}`);
-            const data = await res.json();
-            if (data.success && data.stats && data.stats.historicalReserves) {
-                historicalMonths = data.stats.historicalReserves;
-                renderHistoricalMonths();
-            }
-        }
-        
-        // ========== ALL USERS ==========
         async function loadUsers() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
@@ -467,12 +364,16 @@
         
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
         
-        // Auto-refresh withdrawal requests every 10 seconds
-        setInterval(() => {
-            if (document.getElementById('adminPanel').style.display === 'block') {
-                loadWithdrawalRequests();
+        async function loadHistoricalReserves() {
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch(`/api/admin/stats?email=${adminEmail}&password=${adminPassword}`);
+            const data = await res.json();
+            if (data.success && data.stats && data.stats.historicalReserves) {
+                historicalMonths = data.stats.historicalReserves;
+                renderHistoricalMonths();
             }
-        }, 10000);
+        }
     </script>
 </body>
 </html>

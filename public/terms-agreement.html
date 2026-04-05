@@ -14,9 +14,8 @@
         .terms-box h3 { color: #F0B90B; margin: 16px 0 8px 0; font-size: 1rem; }
         .terms-box p { margin-bottom: 12px; }
         .terms-box ul { margin-left: 20px; margin-bottom: 12px; }
-        .terms-box li { margin-bottom: 4px; }
         .agree-container { display: flex; align-items: center; gap: 12px; margin: 20px 0; padding: 16px; background: #2B3139; border-radius: 8px; }
-        .agree-container input { width: 20px; height: 20px; cursor: pointer; margin: 0; }
+        .agree-container input { width: 20px; height: 20px; cursor: pointer; }
         .agree-container label { font-size: 0.9rem; cursor: pointer; color: #EAECEF; }
         .accept-btn { width: 100%; background: #F0B90B; color: #0B0E1A; border: none; padding: 14px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: opacity 0.2s; }
         .accept-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -35,56 +34,34 @@
         <div class="terms-box" id="termsBox">
             <h3>1. Acceptance of Terms</h3>
             <p>By accessing or using Coinzara ("Platform", "we", "us", "our"), you agree to be bound by these Terms & Conditions. If you do not agree, please do not use our services.</p>
-            
             <h3>2. Eligibility</h3>
             <p>You must be at least 18 years old to use Coinzara. By using our platform, you represent that you meet this requirement.</p>
-            
             <h3>3. Account Registration</h3>
             <p>You agree to provide accurate, current, and complete information during registration. You are responsible for maintaining the confidentiality of your login credentials.</p>
-            
             <h3>4. AI Trading Services</h3>
             <p>Coinzara provides an automated AI trading engine that executes trades on your behalf. Trading involves significant risk. Past performance does not guarantee future results.</p>
-            
             <h3>5. Deposits</h3>
             <p>Deposits are credited within 15-30 minutes after network confirmation. You are responsible for sending funds to the correct network address. Coinzara is not liable for lost funds due to user error.</p>
-            
             <h3>6. Withdrawals</h3>
             <p>Withdrawal requests are processed within 24-48 hours. All withdrawals undergo manual security review. Coinzara reserves the right to delay or cancel withdrawals for security reasons.</p>
-            
             <h3>7. Fees</h3>
             <p>Coinzara may charge fees for deposits, withdrawals, or trading. Fee schedules will be displayed on the platform and may be updated from time to time.</p>
-            
             <h3>8. Prohibited Activities</h3>
-            <ul>
-                <li>Illegal activities or money laundering</li>
-                <li>Manipulating market prices</li>
-                <li>Hacking or interfering with platform operations</li>
-                <li>Creating multiple accounts</li>
-            </ul>
-            
+            <ul><li>Illegal activities or money laundering</li><li>Manipulating market prices</li><li>Hacking or interfering with platform operations</li><li>Creating multiple accounts</li></ul>
             <h3>9. Account Suspension & Termination</h3>
             <p>Coinzara reserves the right to suspend or terminate accounts that violate these terms, engage in suspicious activity, or as required by law.</p>
-            
             <h3>10. Risk Disclosure</h3>
             <p>Cryptocurrency trading carries substantial risk. You may lose some or all of your invested funds. Coinzara is not responsible for trading losses.</p>
-            
             <h3>11. Limitation of Liability</h3>
             <p>To the maximum extent permitted by law, Coinzara shall not be liable for any indirect, incidental, or consequential damages arising from your use of the platform.</p>
-            
             <h3>12. Privacy Policy</h3>
-            <p><strong>Information Collection:</strong> We collect name, email, country, and transaction data.<br>
-            <strong>Data Usage:</strong> Used solely for platform operation and support.<br>
-            <strong>Data Security:</strong> All data is encrypted and stored securely.<br>
-            <strong>Third Parties:</strong> We do not share your personal information.<br>
-            <strong>Cookies:</strong> We use cookies for session management.<br>
-            <strong>Your Rights:</strong> You may request deletion of your account and data.</p>
-            
+            <p><strong>Information Collection:</strong> We collect name, email, country, and transaction data.<br><strong>Data Usage:</strong> Used solely for platform operation and support.<br><strong>Data Security:</strong> All data is encrypted and stored securely.<br><strong>Third Parties:</strong> We do not share your personal information.<br><strong>Cookies:</strong> We use cookies for session management.<br><strong>Your Rights:</strong> You may request deletion of your account and data.</p>
             <h3>13. Amendments</h3>
             <p>We may modify these terms at any time. Continued use of the platform constitutes acceptance of the updated terms.</p>
-            
-            <h3>14. Contact Us</h3>
+            <h3>14. Fee Policy on AI Profits</h3>
+            <p>Coinzara charges a 10% fee on all AI-generated profits. This fee is automatically deducted before profits are added to your available balance.</p>
+            <h3>15. Contact Us</h3>
             <p>For questions about these terms, contact us at: support@coinzara.org</p>
-            
             <p style="margin-top: 16px; color: #F0B90B;">© 2026 Coinzara.org. All rights reserved.</p>
         </div>
         
@@ -105,11 +82,9 @@
         const errorMsg = document.getElementById('errorMsg');
         const loadingMsg = document.getElementById('loadingMsg');
         
-        // Enable checkbox only when user has scrolled to bottom
         termsBox.addEventListener('scroll', function() {
             const scrollPosition = this.scrollTop + this.clientHeight;
             const scrollHeight = this.scrollHeight;
-            
             if (scrollPosition >= scrollHeight - 10) {
                 agreeCheckbox.disabled = false;
             }
@@ -129,16 +104,12 @@
             loadingMsg.style.display = 'block';
             errorMsg.innerText = '';
             
-            const res = await fetch('/api/accept-terms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
+            const res = await fetch('/api/accept-terms', { method: 'POST' });
             const result = await res.json();
             
             if (result.success) {
                 loadingMsg.innerHTML = 'Redirecting to dashboard...';
-                setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+                setTimeout(() => { window.location.href = '/dashboard'; }, 1000);
             } else {
                 loadingMsg.style.display = 'none';
                 acceptBtn.disabled = false;

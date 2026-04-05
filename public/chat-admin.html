@@ -29,6 +29,7 @@
         .reply-text { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; font-family: inherit; margin-bottom: 12px; resize: vertical; }
         .send-reply { background: #F0B90B; color: #0B0E1A; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-left: 8px; }
+        .badge-unread { background: #F6465D; color: white; }
         .delete-btn { background: #F6465D; color: white; padding: 4px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.7rem; margin-left: 10px; }
         .delete-btn:hover { opacity: 0.8; }
         .refresh-btn { margin-bottom: 16px; }
@@ -130,28 +131,10 @@
             
             let html = '';
             users.forEach(user => {
-                // Create a flat list of ALL entries (user messages + replies) sorted by timestamp
-                const allEntries = [];
-                user.messages.forEach(msg => {
-                    allEntries.push({
-                        text: msg.message,
-                        sender: msg.userName,
-                        isSupport: false,
-                        timestamp: new Date(msg.createdAt)
-                    });
-                    if (msg.reply && msg.reply.trim()) {
-                        allEntries.push({
-                            text: msg.reply,
-                            sender: 'Support Agent',
-                            isSupport: true,
-                            timestamp: new Date(msg.repliedAt)
-                        });
-                    }
-                });
-                // Sort by timestamp (oldest first) - NORMAL CHAT ORDER
-                allEntries.sort((a, b) => a.timestamp - b.timestamp);
+                // Sort messages by createdAt (oldest first) for display
+                const sortedMessages = [...user.messages].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
                 
-                const hasUnreplied = user.messages.some(m => !m.isReplied);
+                const hasUnreplied = sortedMessages.some(m => !m.isReplied);
                 const statusClass = hasUnreplied ? 'status-pending' : 'status-replied';
                 const statusText = hasUnreplied ? 'Pending Reply' : 'Replied';
                 
@@ -160,7 +143,7 @@
                         <div class="conversation-header" onclick="toggleConversation('conv-${user.userId}')">
                             <div>
                                 <span class="conversation-user">${escapeHtml(user.userName)}</span>
-                                <span class="badge">${user.messages.length} messages</span>
+                                <span class="badge">${sortedMessages.length} messages</span>
                             </div>
                             <div>
                                 <span class="conversation-status ${statusClass}">${statusText}</span>
@@ -172,17 +155,31 @@
                             <div class="message-thread">
                 `;
                 
-                // Display ALL messages in chronological order (back and forth chat)
-                for (let i = 0; i < allEntries.length; i++) {
-                    const entry = allEntries[i];
-                    const msgClass = entry.isSupport ? 'support-msg' : 'user-msg';
+                // Display each user message followed by its reply (if any)
+                for (let i = 0; i < sortedMessages.length; i++) {
+                    const msg = sortedMessages[i];
                     html += `
-                        <div class="${msgClass}">
-                            <strong>${escapeHtml(entry.sender)}:</strong>
-                            <div>${escapeHtml(entry.text)}</div>
-                            <div class="msg-time">${entry.timestamp.toLocaleString()}</div>
+                        <div class="user-msg">
+                            <strong>${escapeHtml(msg.userName)}:</strong>
+                            <div>${escapeHtml(msg.message)}</div>
+                            <div class="msg-time">${new Date(msg.createdAt).toLocaleString()}</div>
                         </div>
                     `;
+                    if (msg.reply && msg.reply.trim()) {
+                        html += `
+                            <div class="support-msg">
+                                <strong>Support Agent:</strong>
+                                <div>${escapeHtml(msg.reply)}</div>
+                                <div class="msg-time">${new Date(msg.repliedAt).toLocaleString()}</div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="support-msg" style="background: #F6465D22; border-left-color: #F6465D;">
+                                <strong>Pending Reply...</strong>
+                            </div>
+                        `;
+                    }
                 }
                 
                 html += `
@@ -211,7 +208,7 @@
                 return;
             }
             
-            // Find the most recent user message
+            // Find ALL messages for this user, sorted by createdAt (NEWEST FIRST)
             const userMessages = allMessages
                 .filter(m => m.userId === userId)
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -221,6 +218,7 @@
                 return;
             }
             
+            // ALWAYS reply to the MOST RECENT message (first in the sorted array)
             const mostRecentMessage = userMessages[0];
             
             const res = await fetch('/api/admin/chat/reply', {

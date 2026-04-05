@@ -56,15 +56,15 @@
         <div class="navbar-content">
             <div class="logo">COINZARA</div>
             <div class="nav-links">
-                <a href="dashboard.html">Dashboard</a>
-                <a href="deposit.html">Deposit</a>
-                <a href="withdraw.html">Withdraw</a>
-                <a href="learn.html">Learn</a>
-                <a href="news.html">News</a>
-                <a href="transaction-history.html">History</a>
-                <a href="settings.html">Settings</a>
-                <a href="support.html">Support</a>
-                <a href="proof-of-reserves.html">Proof of Reserves</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/deposit">Deposit</a>
+                <a href="/withdraw">Withdraw</a>
+                <a href="/learn">Learn</a>
+                <a href="/news">News</a>
+                <a href="/history">History</a>
+                <a href="/settings">Settings</a>
+                <a href="/support">Support</a>
+                <a href="/reserves">Proof of Reserves</a>
                 <a href="#" id="logoutBtn">Logout</a>
             </div>
         </div>
@@ -87,9 +87,9 @@
     <footer>
         <p>&copy; 2026 Coinzara.org - AI Crypto Trading Platform</p>
         <div class="footer-links">
-            <a href="terms.html">Terms & Conditions</a>
-            <a href="proof-of-reserves.html">Proof of Reserves</a>
-            <a href="support.html">Support</a>
+            <a href="/terms">Terms & Conditions</a>
+            <a href="/reserves">Proof of Reserves</a>
+            <a href="/support">Support</a>
         </div>
     </footer>
 
@@ -171,13 +171,13 @@
             modal.appendChild(content);
             document.body.appendChild(modal);
             document.getElementById('logoutCancelBtn').addEventListener('click', () => { modal.remove(); });
-            document.getElementById('logoutConfirmBtn').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = 'login.html'; });
+            document.getElementById('logoutConfirmBtn').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; });
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
         }
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget - Simplified chronological order
+        // Chat Widget
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;
@@ -249,7 +249,7 @@
         async function sendMessage() { 
             if (!isLoggedIn) { 
                 alert('Please login to send a message'); 
-                window.location.href = 'login.html'; 
+                window.location.href = '/login'; 
                 return; 
             } 
             if (isSending) return; 
