@@ -19,7 +19,7 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// User Schema with aiLoss field added
+// User Schema
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
   email: { type: String, unique: true, required: true },
@@ -378,7 +378,6 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
     netProfit: netProfit
   });
 });
-
 // ========== ADMIN - ADD AI LOSS (NO FEE) ==========
 app.post('/api/admin/add-ai-loss', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiLoss } = req.body;
@@ -417,6 +416,7 @@ app.post('/api/admin/add-ai-loss', async (req, res) => {
     lossAmount: lossAmount
   });
 });
+
 // ========== ADMIN - DELETE USER ==========
 app.post('/api/admin/delete-user', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.body;
