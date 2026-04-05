@@ -4,11 +4,24 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Clean URLs - serve .html files without extension
+app.use((req, res, next) => {
+  if (req.path.indexOf('.') === -1 && !req.path.startsWith('/api')) {
+    const filePath = path.join(__dirname, 'public', req.path + '.html');
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
@@ -365,6 +378,15 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
   user.aiProfit = (user.aiProfit || 0) + fullProfit;
   user.balance += netProfit;
   
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'AI Profit',
+    amount: netProfit,
+    balance: user.balance,
+    reason: `AI Profit: $${fullProfit} (Fee: $${fee})`,
+    status: 'completed'
+  });
+  
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
   
@@ -378,6 +400,7 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
     netProfit: netProfit
   });
 });
+
 // ========== ADMIN - ADD AI LOSS (NO FEE) ==========
 app.post('/api/admin/add-ai-loss', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, aiLoss } = req.body;
@@ -416,7 +439,6 @@ app.post('/api/admin/add-ai-loss', async (req, res) => {
     lossAmount: lossAmount
   });
 });
-
 // ========== ADMIN - DELETE USER ==========
 app.post('/api/admin/delete-user', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.body;
