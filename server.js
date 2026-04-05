@@ -19,6 +19,53 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
+// ========== CLEAN URL ROUTES (no .html) ==========
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+app.get('/deposit', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'deposit.html'));
+});
+app.get('/withdraw', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'withdraw.html'));
+});
+app.get('/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
+});
+app.get('/learn', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'learn.html'));
+});
+app.get('/news', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'news.html'));
+});
+app.get('/support', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'support.html'));
+});
+app.get('/history', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'transaction-history.html'));
+});
+app.get('/reserves', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'proof-of-reserves.html'));
+});
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+app.get('/chat-admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat-admin.html'));
+});
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+app.get('/signup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // User Schema
 const userSchema = new mongoose.Schema({
   fullName: { type: String, required: true },
@@ -683,7 +730,6 @@ app.post('/api/chat/send', async (req, res) => {
   res.json({ success: true, message: 'Message sent. Support will reply soon.' });
 });
 
-// IMPORTANT: Sorted by createdAt (oldest first) for correct chronological order
 app.get('/api/chat/my-messages', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
@@ -716,7 +762,6 @@ app.post('/api/admin/chat/reply', async (req, res) => {
     return res.json({ success: false, error: 'Message not found' });
   }
   
-  // Prevent duplicate replies
   if (message.reply && message.reply.trim()) {
     return res.json({ success: false, error: 'This message already has a reply' });
   }
