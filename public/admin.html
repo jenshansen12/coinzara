@@ -22,64 +22,122 @@
         .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
         .badge-referral { background: #0ECB8122; color: #0ECB81; }
         label { display: block; color: #848E9C; font-size: 0.75rem; margin-bottom: 4px; }
+        .loss-btn { background: #F6465D; color: white; }
         @media (max-width: 768px) { th, td { padding: 6px 4px; font-size: 0.65rem; } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Admin Panel</h1>
-        <div id="adminLogin" class="login-box"><h3>Administrator Access</h3><input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org"><input type="password" id="adminPassword" placeholder="Admin Password"><button onclick="adminLogin()">Login</button><div id="loginMsg"></div></div>
-        
+        <div id="adminLogin" class="login-box">
+            <h3>Administrator Access</h3>
+            <input type="email" id="adminEmail" placeholder="Admin Email" value="admin@coinzara.org">
+            <input type="password" id="adminPassword" placeholder="Admin Password">
+            <button onclick="adminLogin()">Login</button>
+            <div id="loginMsg"></div>
+        </div>
         <div id="adminPanel" style="display:none;">
-            <div class="admin-box"><h3>Add Deposit</h3><label>User Email</label><input type="email" id="depositEmail" placeholder="User Email"><label>Deposit Amount (USD)</label><input type="number" id="depositAmount" placeholder="Deposit Amount (USD)"><label>Reason</label><input type="text" id="depositReason" placeholder="Reason (e.g., BTC Deposit)"><button onclick="addDeposit()">Add Deposit</button><div id="depositMsg"></div></div>
-            
-            <div class="admin-box"><h3>Add Withdrawal</h3><label>User Email</label><input type="email" id="withdrawalEmail" placeholder="User Email"><label>Withdrawal Amount (USD)</label><input type="number" id="withdrawalAmount" placeholder="Withdrawal Amount (USD)"><label>Reason</label><input type="text" id="withdrawalReason" placeholder="Reason (e.g., BTC Withdrawal)"><button onclick="addWithdrawal()">Add Withdrawal</button><div id="withdrawalMsg"></div></div>
-            
-            <div class="admin-box"><h3>Update AI Profit</h3><label>User Email</label><input type="email" id="aiUserEmail" placeholder="User Email"><label>AI Profit Amount (USD)</label><input type="number" id="aiProfitAmount" placeholder="AI Profit Amount (USD)"><button onclick="updateAiProfit()">Update AI Profit</button><div id="aiProfitMsg"></div></div>
-            
-            <div class="admin-box"><h3>Delete User Account</h3><label>User Email</label><input type="email" id="deleteUserEmail" placeholder="User Email"><button onclick="deleteUser()" style="background:#F6465D; color:white;">Delete User Permanently</button><div id="deleteMsg"></div></div>
-            
-            <div class="admin-box"><h3>View User Transactions</h3><label>User Email</label><input type="email" id="txUserEmail" placeholder="User Email"><button onclick="loadUserTransactions()">Load Transaction History</button><div id="userTransactionsList"></div></div>
-            
-            <div class="admin-box"><h3>User Account Details (For Password Reset)</h3><label>User Email</label><input type="email" id="resetUserEmail" placeholder="User Email"><button onclick="loadUserDetails()">Load User Details</button><div id="userDetailsContainer"></div></div>
-            
-            <div class="admin-box"><h3>Platform Stats (Proof of Reserves)</h3>
+            <div class="admin-box">
+                <h3>Add Deposit</h3>
+                <label>User Email</label>
+                <input type="email" id="depositEmail" placeholder="User Email">
+                <label>Deposit Amount (USD)</label>
+                <input type="number" id="depositAmount" placeholder="Deposit Amount (USD)">
+                <label>Reason</label>
+                <input type="text" id="depositReason" placeholder="Reason (e.g., BTC Deposit)">
+                <button onclick="addDeposit()">Add Deposit</button>
+                <div id="depositMsg"></div>
+            </div>
+            <div class="admin-box">
+                <h3>Add Withdrawal</h3>
+                <label>User Email</label>
+                <input type="email" id="withdrawalEmail" placeholder="User Email">
+                <label>Withdrawal Amount (USD)</label>
+                <input type="number" id="withdrawalAmount" placeholder="Withdrawal Amount (USD)">
+                <label>Reason</label>
+                <input type="text" id="withdrawalReason" placeholder="Reason (e.g., BTC Withdrawal)">
+                <button onclick="addWithdrawal()">Add Withdrawal</button>
+                <div id="withdrawalMsg"></div>
+            </div>
+            <div class="admin-box">
+                <h3>Update AI Profit (10% Fee)</h3>
+                <label>User Email</label>
+                <input type="email" id="aiUserEmail" placeholder="User Email">
+                <label>AI Profit Amount (USD) - Positive Only</label>
+                <input type="number" id="aiProfitAmount" placeholder="AI Profit Amount (USD)" min="0">
+                <button onclick="updateAiProfit()">Add AI Profit</button>
+                <div id="aiProfitMsg"></div>
+            </div>
+            <div class="admin-box" style="border-color: #F6465D;">
+                <h3 style="color: #F6465D;">Add AI Loss (No Fee)</h3>
+                <label>User Email</label>
+                <input type="email" id="aiLossUserEmail" placeholder="User Email">
+                <label>AI Loss Amount (USD) - Positive Only</label>
+                <input type="number" id="aiLossAmount" placeholder="AI Loss Amount (USD)" min="0">
+                <button onclick="addAiLoss()" class="loss-btn">Add AI Loss</button>
+                <div id="aiLossMsg"></div>
+            </div>
+            <div class="admin-box">
+                <h3>Delete User Account</h3>
+                <label>User Email</label>
+                <input type="email" id="deleteUserEmail" placeholder="User Email">
+                <button onclick="deleteUser()" style="background:#F6465D; color:white;">Delete User Permanently</button>
+                <div id="deleteMsg"></div>
+            </div>
+            <div class="admin-box">
+                <h3>View User Transactions</h3>
+                <label>User Email</label>
+                <input type="email" id="txUserEmail" placeholder="User Email">
+                <button onclick="loadUserTransactions()">Load Transaction History</button>
+                <div id="userTransactionsList"></div>
+            </div>
+            <div class="admin-box">
+                <h3>User Account Details (For Password Reset)</h3>
+                <label>User Email</label>
+                <input type="email" id="resetUserEmail" placeholder="User Email">
+                <button onclick="loadUserDetails()">Load User Details</button>
+                <div id="userDetailsContainer"></div>
+            </div>
+                        <div class="admin-box">
+                <h3>Platform Stats (Proof of Reserves)</h3>
                 <label>Total User Balances (USD)</label>
-                <input type="number" id="totalUserBalances" placeholder="Total User Balances (USD)">
+                <input type="number" id="totalUserBalances">
                 <label>Total BTC Held</label>
-                <input type="number" id="totalBTCHeld" placeholder="Total BTC Held">
+                <input type="number" id="totalBTCHeld">
                 <label>Total ETH Held</label>
-                <input type="number" id="totalETHHeld" placeholder="Total ETH Held">
+                <input type="number" id="totalETHHeld">
                 <label>Total BNB Held</label>
-                <input type="number" id="totalBNBHeld" placeholder="Total BNB Held">
+                <input type="number" id="totalBNBHeld">
                 <label>Total SOL Held</label>
-                <input type="number" id="totalSOLHeld" placeholder="Total SOL Held">
+                <input type="number" id="totalSOLHeld">
                 <label>Total TRON Held</label>
-                <input type="number" id="totalTRONHeld" placeholder="Total TRON Held">
+                <input type="number" id="totalTRONHeld">
                 <label>AI Trading Volume ($)</label>
-                <input type="number" id="aiTradingVolume" placeholder="AI Trading Volume">
+                <input type="number" id="aiTradingVolume">
                 <label>Total Trades Count</label>
-                <input type="number" id="totalTrades" placeholder="Total Trades Count">
+                <input type="number" id="totalTrades">
                 <label>Monthly Return (%)</label>
-                <input type="number" id="monthlyReturn" placeholder="Monthly Return %">
+                <input type="number" id="monthlyReturn">
                 <button onclick="updatePlatformStats()">Update Platform Stats</button>
                 <div id="statsMsg"></div>
             </div>
-            
-            <div class="admin-box"><h3>Historical Reserves (Monthly)</h3>
+            <div class="admin-box">
+                <h3>Historical Reserves (Monthly)</h3>
                 <div id="historicalReservesContainer"></div>
                 <button onclick="addHistoricalMonth()">Add Month</button>
                 <button onclick="updateHistoricalReserves()">Save Historical Reserves</button>
                 <div id="historicalMsg"></div>
             </div>
-            
-            <div class="admin-box"><h3>All Users</h3><button onclick="loadUsers()">Refresh Users</button><div id="usersList"></div></div>
+            <div class="admin-box">
+                <h3>All Users</h3>
+                <button onclick="loadUsers()">Refresh Users</button>
+                <div id="usersList"></div>
+            </div>
         </div>
         <div class="footer">&copy; 2026 Coinzara.org | Admin Panel</div>
     </div>
-        <script>
+    <script>
         let historicalMonths = [];
-        
         async function adminLogin() {
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
@@ -93,7 +151,6 @@
                 document.getElementById('loginMsg').innerHTML = '<div class="error">Invalid credentials</div>';
             }
         }
-        
         async function addDeposit() {
             const userEmail = document.getElementById('depositEmail').value;
             const amount = document.getElementById('depositAmount').value;
@@ -116,7 +173,6 @@
                 document.getElementById('depositMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
         async function addWithdrawal() {
             const userEmail = document.getElementById('withdrawalEmail').value;
             const amount = document.getElementById('withdrawalAmount').value;
@@ -139,20 +195,20 @@
                 document.getElementById('withdrawalMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
         async function updateAiProfit() {
             const userEmail = document.getElementById('aiUserEmail').value;
             const aiProfit = document.getElementById('aiProfitAmount').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
             if (!userEmail || aiProfit === '') { alert('Please fill user email and AI profit amount'); return; }
+            if (parseFloat(aiProfit) < 0) { alert('AI Profit cannot be negative. Use AI Loss section for losses.'); return; }
             const res = await fetch('/api/admin/update-ai-profit', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ adminEmail, adminPassword, userEmail, aiProfit: parseFloat(aiProfit) })
             });
             const data = await res.json();
             if (data.success) {
-                document.getElementById('aiProfitMsg').innerHTML = `<div class="success">AI Profit updated to $${data.newAiProfit}. New balance: $${data.newBalance}</div>`;
+                document.getElementById('aiProfitMsg').innerHTML = `<div class="success">AI Profit added: +$${data.netProfit.toFixed(2)} (Fee: $${data.fee.toFixed(2)}). New balance: $${data.newBalance}</div>`;
                 loadUsers();
                 document.getElementById('aiUserEmail').value = '';
                 document.getElementById('aiProfitAmount').value = '';
@@ -160,13 +216,33 @@
                 document.getElementById('aiProfitMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
+        async function addAiLoss() {
+            const userEmail = document.getElementById('aiLossUserEmail').value;
+            const aiLoss = document.getElementById('aiLossAmount').value;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            if (!userEmail || aiLoss === '') { alert('Please fill user email and AI loss amount'); return; }
+            if (parseFloat(aiLoss) < 0) { alert('Please enter a positive loss amount'); return; }
+            const res = await fetch('/api/admin/add-ai-loss', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, userEmail, aiLoss: parseFloat(aiLoss) })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('aiLossMsg').innerHTML = `<div class="success">AI Loss added: -$${data.lossAmount}. New balance: $${data.newBalance}</div>`;
+                loadUsers();
+                document.getElementById('aiLossUserEmail').value = '';
+                document.getElementById('aiLossAmount').value = '';
+            } else {
+                document.getElementById('aiLossMsg').innerHTML = `<div class="error">${data.error}</div>`;
+            }
+        }
         async function deleteUser() {
             const userEmail = document.getElementById('deleteUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
             if (!userEmail) { alert('Please enter user email'); return; }
-            if (!confirm(`Are you sure you want to delete user ${userEmail}? This cannot be undone.`)) return;
+            if (!confirm('Are you sure? This cannot be undone.')) return;
             const res = await fetch('/api/admin/delete-user', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ adminEmail, adminPassword, userEmail })
@@ -180,7 +256,6 @@
                 document.getElementById('deleteMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
         async function loadUserTransactions() {
             const userEmail = document.getElementById('txUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
@@ -190,27 +265,15 @@
             const data = await res.json();
             if (data.success) {
                 const container = document.getElementById('userTransactionsList');
-                if (data.transactions.length === 0) {
-                    container.innerHTML = '<div class="success">No transactions found for this user.</div>';
-                    return;
-                }
-                let html = '<div style="margin-top: 10px; overflow-x: auto;"><table style="width:100%;"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Reason</th></tr></thead><tbody>';
-                data.transactions.forEach(tx => {
-                    html += `<tr>
-                        <td>${new Date(tx.date).toLocaleString()}</td>
-                        <td>${tx.type}</td>
-                        <td>$${Math.abs(tx.amount).toFixed(2)}</td>
-                        <td>$${tx.balance.toFixed(2)}</td>
-                        <td>${tx.reason || '-'}</td>
-                    </tr>`;
-                });
-                html += '</tbody></table></div><div style="margin-top:10px;"><strong>Current Balance:</strong> $' + data.balance.toFixed(2) + '</div>';
+                if (data.transactions.length === 0) { container.innerHTML = '<div class="success">No transactions found.</div>'; return; }
+                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Reason</th></tr></thead><tbody>';
+                data.transactions.forEach(tx => { html += `<tr><td>${new Date(tx.date).toLocaleString()}</td><td>${tx.type}</td><td>$${Math.abs(tx.amount).toFixed(2)}</td><td>$${tx.balance.toFixed(2)}</td><td>${tx.reason || '-'}</td></tr>`; });
+                html += '</tbody></table></div><div><strong>Current Balance:</strong> $' + data.balance.toFixed(2) + '</div>';
                 container.innerHTML = html;
             } else {
                 document.getElementById('userTransactionsList').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
         async function loadUserDetails() {
             const userEmail = document.getElementById('resetUserEmail').value;
             const adminEmail = document.getElementById('adminEmail').value;
@@ -219,26 +282,12 @@
             const res = await fetch(`/api/admin/user-details?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
             const data = await res.json();
             if (data.success) {
-                document.getElementById('userDetailsContainer').innerHTML = `
-                    <div style="background: #2B3139; padding: 16px; border-radius: 8px; margin-top: 16px;">
-                        <p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p>
-                        <p><strong>Email:</strong> ${escapeHtml(data.user.email)}</p>
-                        <p><strong>Password:</strong> <span style="color: #0ECB81; font-family: monospace;">${escapeHtml(data.user.plainPassword)}</span> <button onclick="copyToClipboard('${escapeHtml(data.user.plainPassword)}')" style="width: auto; padding: 4px 12px; margin-left: 8px;">Copy</button></p>
-                        <p><strong>Security Question:</strong> ${escapeHtml(data.user.securityQuestion)}</p>
-                        <p><strong>Security Answer:</strong> <span style="color: #0ECB81; font-family: monospace;">${escapeHtml(data.user.plainSecurityAnswer)}</span> <button onclick="copyToClipboard('${escapeHtml(data.user.plainSecurityAnswer)}')" style="width: auto; padding: 4px 12px; margin-left: 8px;">Copy</button></p>
-                        <p><strong>Account Created:</strong> ${new Date(data.user.createdAt).toLocaleDateString()}</p>
-                    </div>
-                `;
+                document.getElementById('userDetailsContainer').innerHTML = `<div style="background:#2B3139;padding:16px;border-radius:8px;"><p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p><p><strong>Email:</strong> ${escapeHtml(data.user.email)}</p><p><strong>Password:</strong> ${escapeHtml(data.user.plainPassword)} <button onclick="copyToClipboard('${escapeHtml(data.user.plainPassword)}')">Copy</button></p><p><strong>Security Answer:</strong> ${escapeHtml(data.user.plainSecurityAnswer)} <button onclick="copyToClipboard('${escapeHtml(data.user.plainSecurityAnswer)}')">Copy</button></p></div>`;
             } else {
                 document.getElementById('userDetailsContainer').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text);
-            alert('Copied to clipboard');
-        }
-        
+        function copyToClipboard(text) { navigator.clipboard.writeText(text); alert('Copied'); }
         async function updatePlatformStats() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
@@ -259,12 +308,11 @@
             });
             const data = await res.json();
             if (data.success) {
-                document.getElementById('statsMsg').innerHTML = '<div class="success">Platform stats updated successfully</div>';
+                document.getElementById('statsMsg').innerHTML = '<div class="success">Stats updated</div>';
             } else {
                 document.getElementById('statsMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
         async function loadPlatformStats() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
@@ -286,31 +334,16 @@
                 }
             }
         }
-        
         function renderHistoricalMonths() {
             const container = document.getElementById('historicalReservesContainer');
             let html = '';
             historicalMonths.forEach((month, index) => {
-                html += `<div style="margin-bottom: 12px; padding: 8px; background: #2B3139; border-radius: 8px;">
-                            <input type="text" id="hist_month_${index}" value="${month.month}" placeholder="Month Name" style="width: 30%; margin-right: 8px;">
-                            <input type="number" id="hist_balance_${index}" value="${month.totalUserBalances}" placeholder="Total User Balances" style="width: 30%; margin-right: 8px;">
-                            <input type="number" id="hist_ratio_${index}" value="${month.reserveRatio}" placeholder="Reserve Ratio %" style="width: 25%; margin-right: 8px;">
-                            <button onclick="removeHistoricalMonth(${index})" style="width: auto; background:#F6465D;">Remove</button>
-                        </div>`;
+                html += `<div><input type="text" id="hist_month_${index}" value="${month.month}" placeholder="Month"><input type="number" id="hist_balance_${index}" value="${month.totalUserBalances}" placeholder="Balance"><input type="number" id="hist_ratio_${index}" value="${month.reserveRatio}" placeholder="Ratio %"><button onclick="removeHistoricalMonth(${index})">Remove</button></div>`;
             });
             container.innerHTML = html;
         }
-        
-        function addHistoricalMonth() {
-            historicalMonths.push({ month: 'New Month', totalUserBalances: 0, reserveRatio: 100 });
-            renderHistoricalMonths();
-        }
-        
-        function removeHistoricalMonth(index) {
-            historicalMonths.splice(index, 1);
-            renderHistoricalMonths();
-        }
-        
+        function addHistoricalMonth() { historicalMonths.push({ month: 'New Month', totalUserBalances: 0, reserveRatio: 100 }); renderHistoricalMonths(); }
+        function removeHistoricalMonth(index) { historicalMonths.splice(index, 1); renderHistoricalMonths(); }
         async function updateHistoricalReserves() {
             const updated = [];
             for (let i = 0; i < historicalMonths.length; i++) {
@@ -334,26 +367,15 @@
                 document.getElementById('historicalMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        
         async function loadUsers() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
             const res = await fetch(`/api/admin/users?email=${adminEmail}&password=${adminPassword}`);
             const data = await res.json();
             if (data.success && data.users) {
-                let html = '<div style="overflow-x: auto;"><table style="width:100%;"><thead><tr><th>Name</th><th>Email</th><th>Country</th><th>Balance</th><th>AI Profit</th><th>Ref Code</th><th>Ref Count</th><th>Verified</th><th>Joined</th></tr></thead><tbody>';
+                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>AI Profit</th><th>Ref Code</th></tr></thead><tbody>';
                 data.users.forEach(u => {
-                    html += `<tr>
-                        <td>${escapeHtml(u.fullName)}</td>
-                        <td>${escapeHtml(u.email)}</td>
-                        <td>${escapeHtml(u.country || '-')}</td>
-                        <td>$${u.balance.toFixed(2)}</td>
-                        <td>$${(u.aiProfit || 0).toFixed(2)}</td>
-                        <td><span class="badge badge-referral">${escapeHtml(u.referralCode || '-')}</span></td>
-                        <td>${u.referralCount || 0}</td>
-                        <td>${u.emailVerified ? '✅' : '❌'}</td>
-                        <td>${new Date(u.createdAt).toLocaleDateString()}</td>
-                    </tr>`;
+                    html += `<tr><td>${escapeHtml(u.fullName)}</td><td>${escapeHtml(u.email)}</td><td>$${u.balance.toFixed(2)}</td><td>$${(u.aiProfit || 0).toFixed(2)}</td><td>${escapeHtml(u.referralCode || '-')}</td></tr>`;
                 });
                 html += '</tbody></table></div>';
                 document.getElementById('usersList').innerHTML = html;
@@ -361,9 +383,7 @@
                 document.getElementById('usersList').innerHTML = '<div class="error">Failed to load users</div>';
             }
         }
-        
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
-        
         async function loadHistoricalReserves() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
