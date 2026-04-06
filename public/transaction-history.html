@@ -99,13 +99,15 @@
             const data = await res.json();
             if (data.loggedIn) {
                 const history = data.transactionHistory || [];
+                // Filter to show only Deposits and Withdrawals
+                const filtered = history.filter(tx => tx.type === 'Deposit' || tx.type === 'Withdrawal');
                 const container = document.getElementById('historyContainer');
-                if (history.length === 0) {
-                    container.innerHTML = '<div class="empty-state">No transaction history yet. Make a deposit to get started.</div>';
+                if (filtered.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No deposit or withdrawal history yet. Make a deposit to get started.</div>';
                     return;
                 }
                 let html = '<table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Status</th></tr></thead><tbody>';
-                history.forEach(tx => {
+                filtered.forEach(tx => {
                     const amountClass = tx.type === 'Deposit' ? 'deposit' : 'withdrawal';
                     const amountPrefix = tx.type === 'Deposit' ? '+' : '';
                     html += `<tr>
