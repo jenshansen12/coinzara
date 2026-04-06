@@ -36,7 +36,6 @@
         .footer-links a:hover { color: #F0B90B; }
         .last-updated { text-align: center; margin-top: 20px; font-size: 0.7rem; color: #848E9C; }
         
-        /* Chat Widget */
         .chat-button { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background: #F0B90B; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; transition: transform 0.2s; }
         .chat-button:hover { transform: scale(1.05); }
         .chat-button span { font-size: 28px; font-weight: bold; color: #0B0E1A; }
@@ -66,10 +65,10 @@
                 <a href="/withdraw">Withdraw</a>
                 <a href="/learn">Learn</a>
                 <a href="/news">News</a>
-                <a href="/history">History</a>
+                <a href="/transaction-history">History</a>
                 <a href="/settings">Settings</a>
                 <a href="/support">Support</a>
-                <a href="/reserves">Proof of Reserves</a>
+                <a href="/proof-of-reserves">Proof of Reserves</a>
                 <a href="#" id="logoutBtn">Logout</a>
             </div>
         </div>
@@ -127,7 +126,7 @@
         <p>&copy; 2026 Coinzara.org - AI Crypto Trading Platform</p>
         <div class="footer-links">
             <a href="/terms">Terms & Conditions</a>
-            <a href="/reserves">Proof of Reserves</a>
+            <a href="/proof-of-reserves">Proof of Reserves</a>
             <a href="/support">Support</a>
         </div>
     </footer>
@@ -191,7 +190,6 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;

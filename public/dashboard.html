@@ -50,7 +50,7 @@
         .chart-container h3 { margin-bottom: 20px; font-size: 1rem; }
         canvas { max-height: 260px; width: 100%; }
         .pnl-display { text-align: center; margin-top: 16px; padding: 8px; background: #2B3139; border-radius: 8px; display: inline-block; width: auto; }
-        .pnl-display span { color: #0ECB81; font-weight: 600; }
+        .pnl-display span { font-weight: 600; }
         
         .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #2B3139; font-size: 0.85rem; }
         .info-row:last-child { border-bottom: none; }
@@ -108,10 +108,10 @@
                 <a href="/withdraw">Withdraw</a>
                 <a href="/learn">Learn</a>
                 <a href="/news">News</a>
-                <a href="/history">History</a>
+                <a href="/transaction-history">History</a>
                 <a href="/settings">Settings</a>
                 <a href="/support">Support</a>
-                <a href="/reserves">Proof of Reserves</a>
+                <a href="/proof-of-reserves">Proof of Reserves</a>
                 <a href="#" id="logoutBtn">Logout</a>
             </div>
         </div>
@@ -220,7 +220,7 @@
         <p>&copy; 2026 Coinzara.org | AI Crypto Trading Platform</p>
         <div class="footer-links">
             <a href="/terms">Terms & Conditions</a>
-            <a href="/reserves">Proof of Reserves</a>
+            <a href="/proof-of-reserves">Proof of Reserves</a>
             <a href="/support">Support</a>
         </div>
     </footer>
@@ -307,24 +307,25 @@
             
             calculatePnL(snapshots);
         }
-                function calculatePnL(snapshots) {
+                // FIXED: Calculate P&L based on first non-zero balance
+        function calculatePnL(snapshots) {
             if (!snapshots || snapshots.length < 2) {
                 document.getElementById('pnlPercent').innerText = '0.00';
                 return;
             }
-            
-            const firstBalance = snapshots[0].balance;
+
+            // Find first non-zero balance as the starting point
+            const firstDeposit = snapshots.find(s => s.balance > 0);
             const lastBalance = snapshots[snapshots.length - 1].balance;
-            
-            if (firstBalance === 0 && lastBalance === 0) {
+
+            if (!firstDeposit) {
                 document.getElementById('pnlPercent').innerText = '0.00';
-            } else if (firstBalance === 0 && lastBalance > 0) {
-                document.getElementById('pnlPercent').innerText = '100.00';
-            } else {
-                const pnl = ((lastBalance - firstBalance) / firstBalance * 100).toFixed(2);
-                document.getElementById('pnlPercent').innerText = pnl;
-                document.getElementById('pnlPercent').style.color = pnl >= 0 ? '#0ECB81' : '#F6465D';
+                return;
             }
+
+            const pnl = ((lastBalance - firstDeposit.balance) / firstDeposit.balance * 100).toFixed(2);
+            document.getElementById('pnlPercent').innerText = pnl;
+            document.getElementById('pnlPercent').style.color = pnl >= 0 ? '#0ECB81' : '#F6465D';
         }
         
         async function loadUserData() {
