@@ -4,24 +4,11 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Clean URLs - serve .html files without extension
-app.use((req, res, next) => {
-  if (req.path.indexOf('.') === -1 && !req.path.startsWith('/api')) {
-    const filePath = path.join(__dirname, 'public', req.path + '.html');
-    if (fs.existsSync(filePath)) {
-      return res.sendFile(filePath);
-    }
-  }
-  next();
-});
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
@@ -31,6 +18,67 @@ app.use(session({
   saveUninitialized: false,
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
+
+// ========== CLEAN URL ROUTES (no .html) ==========
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+app.get('/deposit', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'deposit.html'));
+});
+app.get('/withdraw', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'withdraw.html'));
+});
+app.get('/settings', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settings.html'));
+});
+app.get('/learn', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'learn.html'));
+});
+app.get('/news', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'news.html'));
+});
+app.get('/support', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'support.html'));
+});
+app.get('/history', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'transaction-history.html'));
+});
+app.get('/reserves', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'proof-of-reserves.html'));
+});
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+app.get('/chat-admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat-admin.html'));
+});
+app.get('/terms', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+app.get('/signup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+app.get('/captcha', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'captcha.html'));
+});
+app.get('/terms-agreement', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'terms-agreement.html'));
+});
+
+// ========== ADDED MISSING PAGE ROUTES ==========
+app.get('/transaction-history', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'transaction-history.html'));
+});
+app.get('/proof-of-reserves', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'proof-of-reserves.html'));
+});
 
 // User Schema
 const userSchema = new mongoose.Schema({
@@ -375,17 +423,8 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
   const fee = fullProfit * 0.1;
   const netProfit = fullProfit - fee;
   
-  user.aiProfit = (user.aiProfit || 0) + fullProfit;
+  user.aiProfit = fullProfit;
   user.balance += netProfit;
-  
-  user.transactionHistory.unshift({
-    date: new Date(),
-    type: 'AI Profit',
-    amount: netProfit,
-    balance: user.balance,
-    reason: `AI Profit: $${fullProfit} (Fee: $${fee})`,
-    status: 'completed'
-  });
   
   user.dailySnapshots.push({ date: new Date(), balance: user.balance });
   if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
@@ -401,44 +440,6 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
   });
 });
 
-// ========== ADMIN - ADD AI LOSS (NO FEE) ==========
-app.post('/api/admin/add-ai-loss', async (req, res) => {
-  const { adminEmail, adminPassword, userEmail, aiLoss } = req.body;
-  
-  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
-    return res.json({ success: false, error: 'Admin access denied' });
-  }
-  
-  const user = await User.findOne({ email: userEmail });
-  if (!user) {
-    return res.json({ success: false, error: 'User not found' });
-  }
-  
-  const lossAmount = parseFloat(aiLoss);
-  user.aiLoss = (user.aiLoss || 0) + lossAmount;
-  user.balance -= lossAmount;
-  
-  user.transactionHistory.unshift({
-    date: new Date(),
-    type: 'AI Loss',
-    amount: -lossAmount,
-    balance: user.balance,
-    reason: `AI Loss: $${lossAmount}`,
-    status: 'completed'
-  });
-  
-  user.dailySnapshots.push({ date: new Date(), balance: user.balance });
-  if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
-  
-  await user.save();
-  
-  res.json({ 
-    success: true, 
-    newAiLoss: user.aiLoss,
-    newBalance: user.balance,
-    lossAmount: lossAmount
-  });
-});
 // ========== ADMIN - DELETE USER ==========
 app.post('/api/admin/delete-user', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.body;
@@ -557,7 +558,6 @@ app.post('/api/admin/approve-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal approved and balance updated' });
 });
-
 // ========== ADMIN - REJECT WITHDRAWAL ==========
 app.post('/api/admin/reject-withdrawal', async (req, res) => {
   const { adminEmail, adminPassword, requestId } = req.body;
@@ -655,7 +655,7 @@ app.get('/api/admin/users', async (req, res) => {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const users = await User.find({}, 'fullName email country balance aiProfit aiLoss referralCode referralCount referralBonus emailVerified createdAt');
+  const users = await User.find({}, 'fullName email country balance aiProfit referralCode referralCount referralBonus emailVerified createdAt');
   res.json({ success: true, users });
 });
 
