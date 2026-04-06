@@ -4,6 +4,8 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 require('dotenv').config();
 
 const app = express();
@@ -102,6 +104,9 @@ const userSchema = new mongoose.Schema({
   agreedToTerms: { type: Boolean, default: false },
   welcomeShown: { type: Boolean, default: false },
   dailySnapshots: { type: Array, default: [] },
+  twoFactorSecret: { type: String },
+  twoFactorTempSecret: { type: String },
+  twoFactorEnabled: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -211,7 +216,10 @@ app.post('/api/signup', async (req, res) => {
       securityQuestion: { question: securityQ1, answer: hashedAnswer },
       plainSecurityAnswer: securityA1,
       emailVerified: true,
-      dailySnapshots: [{ date: new Date(), balance: 0 }]
+      dailySnapshots: [{ date: new Date(), balance: 0 }],
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      twoFactorTempSecret: null
     });
     
     await user.save();
@@ -277,13 +285,36 @@ app.post('/api/login', async (req, res) => {
       return res.json({ success: false, error: 'Wrong password' });
     }
     
+    if (user.twoFactorEnabled) {
+      req.session.pendingUserId = user._id;
+      return res.json({ success: true, requires2FA: true });
+    }
+    
     req.session.userId = user._id;
     req.session.userEmail = user.email;
-    
     res.json({ success: true, fullName: user.fullName, needsTerms: !user.agreedToTerms });
   } catch (err) {
     res.json({ success: false, error: err.message });
   }
+});
+
+// ========== 2FA - VERIFY ON LOGIN ==========
+app.post('/api/2fa/verify-login', async (req, res) => {
+  const { token } = req.body;
+  if (!req.session.pendingUserId) return res.json({ success: false, error: 'Session expired' });
+  const user = await User.findById(req.session.pendingUserId);
+  if (!user) return res.json({ success: false, error: 'User not found' });
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: token,
+    window: 2
+  });
+  if (!verified) return res.json({ success: false, error: 'Invalid code. Try again.' });
+  req.session.userId = user._id;
+  req.session.userEmail = user.email;
+  req.session.pendingUserId = undefined;
+  res.json({ success: true, needsTerms: !user.agreedToTerms });
 });
 
 // ========== GET CURRENT USER ==========
@@ -315,7 +346,8 @@ app.get('/api/me', async (req, res) => {
     securityQuestion: user.securityQuestion.question,
     welcomeShown: user.welcomeShown,
     transactionHistory: user.transactionHistory,
-    dailySnapshots: user.dailySnapshots
+    dailySnapshots: user.dailySnapshots,
+    twoFactorEnabled: user.twoFactorEnabled || false
   });
 });
 
@@ -338,6 +370,56 @@ app.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
+// ========== 2FA - GENERATE SECRET ==========
+app.post('/api/2fa/generate', async (req, res) => {
+  if (!req.session.userId) return res.json({ success: false, error: 'Not logged in' });
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.json({ success: false, error: 'User not found' });
+  const secret = speakeasy.generateSecret({ name: `Coinzara (${user.email})` });
+  user.twoFactorTempSecret = secret.base32;
+  await user.save();
+  const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+  res.json({ success: true, qrCode, secret: secret.base32 });
+});
+
+// ========== 2FA - ENABLE ==========
+app.post('/api/2fa/enable', async (req, res) => {
+  if (!req.session.userId) return res.json({ success: false, error: 'Not logged in' });
+  const { token } = req.body;
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.json({ success: false, error: 'User not found' });
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorTempSecret,
+    encoding: 'base32',
+    token: token,
+    window: 2
+  });
+  if (!verified) return res.json({ success: false, error: 'Invalid code. Try again.' });
+  user.twoFactorSecret = user.twoFactorTempSecret;
+  user.twoFactorEnabled = true;
+  user.twoFactorTempSecret = undefined;
+  await user.save();
+  res.json({ success: true });
+});
+
+// ========== 2FA - DISABLE ==========
+app.post('/api/2fa/disable', async (req, res) => {
+  if (!req.session.userId) return res.json({ success: false, error: 'Not logged in' });
+  const { token } = req.body;
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.json({ success: false, error: 'User not found' });
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: token,
+    window: 2
+  });
+  if (!verified) return res.json({ success: false, error: 'Invalid code. Try again.' });
+  user.twoFactorSecret = undefined;
+  user.twoFactorEnabled = false;
+  await user.save();
+  res.json({ success: true });
+});
 // ========== ADMIN - ADD DEPOSIT ==========
 app.post('/api/admin/add-deposit', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, amount, reason } = req.body;
@@ -369,7 +451,6 @@ app.post('/api/admin/add-deposit', async (req, res) => {
   await user.save();
   res.json({ success: true, newBalance: user.balance });
 });
-
 // ========== ADMIN - ADD WITHDRAWAL ==========
 app.post('/api/admin/add-withdrawal', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, amount, reason } = req.body;
@@ -597,6 +678,7 @@ app.post('/api/admin/approve-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal approved and balance updated' });
 });
+
 // ========== ADMIN - REJECT WITHDRAWAL ==========
 app.post('/api/admin/reject-withdrawal', async (req, res) => {
   const { adminEmail, adminPassword, requestId } = req.body;
@@ -633,14 +715,34 @@ app.post('/api/admin/delete-conversation', async (req, res) => {
   res.json({ success: true, deletedCount: result.deletedCount });
 });
 
-// ========== USER - REQUEST WITHDRAWAL ==========
+// ========== USER - REQUEST WITHDRAWAL (with password/2FA verification) ==========
 app.post('/api/request-withdrawal', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ success: false, error: 'Not logged in' });
   }
   
-  const { amount, network, walletAddress } = req.body;
+  const { amount, network, walletAddress, password, twoFAToken } = req.body;
   const user = await User.findById(req.session.userId);
+  
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+
+  // Verify password or 2FA
+  if (user.twoFactorEnabled) {
+    if (!twoFAToken) return res.json({ success: false, error: 'Please enter your 2FA code' });
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token: twoFAToken,
+      window: 2
+    });
+    if (!verified) return res.json({ success: false, error: 'Invalid 2FA code' });
+  } else {
+    if (!password) return res.json({ success: false, error: 'Please enter your password' });
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.json({ success: false, error: 'Incorrect password' });
+  }
   
   if (user.balance < amount) {
     return res.json({ success: false, error: 'Insufficient balance' });
@@ -694,7 +796,7 @@ app.get('/api/admin/users', async (req, res) => {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const users = await User.find({}, 'fullName email country balance aiProfit aiLoss referralCode referralCount referralBonus emailVerified createdAt');
+  const users = await User.find({}, 'fullName email country balance aiProfit aiLoss referralCode referralCount referralBonus emailVerified createdAt twoFactorEnabled');
   res.json({ success: true, users });
 });
 
@@ -834,3 +936,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Coinzara running on http://localhost:${PORT}`);
 });
+    
