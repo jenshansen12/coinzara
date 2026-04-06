@@ -440,6 +440,45 @@ app.post('/api/admin/update-ai-profit', async (req, res) => {
   });
 });
 
+// ========== ADMIN - ADD AI LOSS ==========
+app.post('/api/admin/add-ai-loss', async (req, res) => {
+  const { adminEmail, adminPassword, userEmail, aiLoss } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const user = await User.findOne({ email: userEmail });
+  if (!user) {
+    return res.json({ success: false, error: 'User not found' });
+  }
+  
+  const lossAmount = parseFloat(aiLoss);
+  user.aiLoss = (user.aiLoss || 0) + lossAmount;
+  user.balance -= lossAmount;
+
+  user.transactionHistory.unshift({
+    date: new Date(),
+    type: 'AI Loss',
+    amount: -lossAmount,
+    balance: user.balance,
+    reason: `AI Loss: $${lossAmount}`,
+    status: 'completed'
+  });
+
+  user.dailySnapshots.push({ date: new Date(), balance: user.balance });
+  if (user.dailySnapshots.length > 30) user.dailySnapshots.shift();
+  
+  await user.save();
+  
+  res.json({ 
+    success: true,
+    lossAmount: lossAmount,
+    newAiLoss: user.aiLoss,
+    newBalance: user.balance
+  });
+});
+
 // ========== ADMIN - DELETE USER ==========
 app.post('/api/admin/delete-user', async (req, res) => {
   const { adminEmail, adminPassword, userEmail } = req.body;
@@ -655,7 +694,7 @@ app.get('/api/admin/users', async (req, res) => {
     return res.json({ success: false, error: 'Admin access denied' });
   }
   
-  const users = await User.find({}, 'fullName email country balance aiProfit referralCode referralCount referralBonus emailVerified createdAt');
+  const users = await User.find({}, 'fullName email country balance aiProfit aiLoss referralCode referralCount referralBonus emailVerified createdAt');
   res.json({ success: true, users });
 });
 
