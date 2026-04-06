@@ -98,7 +98,7 @@
                 <button onclick="loadUserDetails()">Load User Details</button>
                 <div id="userDetailsContainer"></div>
             </div>
-                        <div class="admin-box">
+            <div class="admin-box">
                 <h3>Platform Stats (Proof of Reserves)</h3>
                 <label>Total User Balances (USD)</label>
                 <input type="number" id="totalUserBalances">
@@ -133,6 +133,11 @@
                 <button onclick="loadUsers()">Refresh Users</button>
                 <div id="usersList"></div>
             </div>
+            <div class="admin-box">
+                <h3>Withdrawal Requests</h3>
+                <button onclick="loadWithdrawalRequests()">Refresh Requests</button>
+                <div id="withdrawalRequestsList"></div>
+            </div>
         </div>
         <div class="footer">&copy; 2026 Coinzara.org | Admin Panel</div>
     </div>
@@ -147,6 +152,7 @@
                 loadUsers();
                 loadPlatformStats();
                 loadHistoricalReserves();
+                loadWithdrawalRequests();
             } else {
                 document.getElementById('loginMsg').innerHTML = '<div class="error">Invalid credentials</div>';
             }
@@ -216,7 +222,7 @@
                 document.getElementById('aiProfitMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-        async function addAiLoss() {
+                async function addAiLoss() {
             const userEmail = document.getElementById('aiLossUserEmail').value;
             const aiLoss = document.getElementById('aiLossAmount').value;
             const adminEmail = document.getElementById('adminEmail').value;
@@ -373,15 +379,71 @@
             const res = await fetch(`/api/admin/users?email=${adminEmail}&password=${adminPassword}`);
             const data = await res.json();
             if (data.success && data.users) {
-                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>AI Profit</th><th>Ref Code</th></tr></thead><tbody>';
+                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>AI Profit</th><th>AI Loss</th><th>Ref Code</th></tr></thead><tbody>';
                 data.users.forEach(u => {
-                    html += `<tr><td>${escapeHtml(u.fullName)}</td><td>${escapeHtml(u.email)}</td><td>$${u.balance.toFixed(2)}</td><td>$${(u.aiProfit || 0).toFixed(2)}</td><td>${escapeHtml(u.referralCode || '-')}</td></tr>`;
+                    html += `<tr>
+                        <td>${escapeHtml(u.fullName)}</td>
+                        <td>${escapeHtml(u.email)}</td>
+                        <td>$${u.balance.toFixed(2)}</td>
+                        <td>$${(u.aiProfit || 0).toFixed(2)}</td>
+                        <td>$${(u.aiLoss || 0).toFixed(2)}</td>
+                        <td>${escapeHtml(u.referralCode || '-')}</td>
+                    </tr>`;
                 });
                 html += '</tbody></table></div>';
                 document.getElementById('usersList').innerHTML = html;
             } else {
                 document.getElementById('usersList').innerHTML = '<div class="error">Failed to load users</div>';
             }
+        }
+        async function loadWithdrawalRequests() {
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch(`/api/admin/withdrawal-requests?adminEmail=${adminEmail}&adminPassword=${adminPassword}`);
+            const data = await res.json();
+            if (data.success && data.requests.length > 0) {
+                let html = '<div style="overflow-x:auto;"><table><thead><tr><th>User</th><th>Amount</th><th>Network</th><th>Wallet Address</th><th>Status</th><th>Date</th><th>Action</th></tr></thead><tbody>';
+                data.requests.forEach(r => {
+                    html += `<tr>
+                        <td>${escapeHtml(r.userEmail)}</td>
+                        <td>$${r.amount.toFixed(2)}</td>
+                        <td>${escapeHtml(r.network)}</td>
+                        <td style="word-break:break-all;">${escapeHtml(r.walletAddress)}</td>
+                        <td>${r.status}</td>
+                        <td>${new Date(r.createdAt).toLocaleString()}</td>
+                        <td>${r.status === 'pending' ? `
+                            <button onclick="approveWithdrawal('${r._id}')" style="background:#0ECB81;color:#0B0E1A;padding:6px 10px;font-size:0.7rem;">Approve</button>
+                            <button onclick="rejectWithdrawal('${r._id}')" style="background:#F6465D;color:white;padding:6px 10px;font-size:0.7rem;">Reject</button>
+                        ` : r.status}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+                document.getElementById('withdrawalRequestsList').innerHTML = html;
+            } else {
+                document.getElementById('withdrawalRequestsList').innerHTML = '<p style="color:#848E9C;margin-top:12px;">No withdrawal requests found.</p>';
+            }
+        }
+        async function approveWithdrawal(requestId) {
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch('/api/admin/approve-withdrawal', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, requestId })
+            });
+            const data = await res.json();
+            if (data.success) { alert('Withdrawal approved!'); loadWithdrawalRequests(); loadUsers(); }
+            else { alert('Error: ' + data.error); }
+        }
+        async function rejectWithdrawal(requestId) {
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch('/api/admin/reject-withdrawal', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, requestId })
+            });
+            const data = await res.json();
+            if (data.success) { alert('Withdrawal rejected!'); loadWithdrawalRequests(); }
+            else { alert('Error: ' + data.error); }
         }
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
         async function loadHistoricalReserves() {
