@@ -17,38 +17,109 @@
         .links { text-align: center; margin-top: 24px; font-size: 0.85rem; color: #848E9C; }
         .links a { color: #F0B90B; text-decoration: none; }
         .footer-note { text-align: center; margin-top: 32px; color: #848E9C; font-size: 0.7rem; }
+        .twofa-container { display: none; }
+        .login-container { display: block; }
+        .back-to-login { background: #2B3139; color: #EAECEF; margin-top: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Log In</h1>
-        <div class="subtitle">Access your Coinzara dashboard</div>
-        <form id="loginForm">
-            <input type="email" id="email" placeholder="Email Address" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button type="submit">Log In</button>
-        </form>
-        <div class="links"><a href="/signup">Create Account</a> | <a href="#" id="forgotBtn">Forgot Password?</a></div>
-        <div id="message"></div>
-        <div class="footer-note">&copy; 2026 Coinzara.org</div>
+        <!-- Normal Login Form -->
+        <div id="loginContainer" class="login-container">
+            <h1>Log In</h1>
+            <div class="subtitle">Access your Coinzara dashboard</div>
+            <form id="loginForm">
+                <input type="email" id="email" placeholder="Email Address" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Log In</button>
+            </form>
+            <div class="links"><a href="/signup">Create Account</a> | <a href="#" id="forgotBtn">Forgot Password?</a></div>
+            <div id="loginMessage"></div>
+            <div class="footer-note">&copy; 2026 Coinzara.org</div>
+        </div>
+
+        <!-- 2FA Verification Form (shown if user has 2FA enabled) -->
+        <div id="twofaContainer" class="twofa-container">
+            <h1>Two-Factor Authentication</h1>
+            <div class="subtitle">Enter the 6-digit code from your authenticator app</div>
+            <input type="text" id="twofaToken" placeholder="6-digit code" maxlength="6" autocomplete="off">
+            <button id="verify2faBtn">Verify & Log In</button>
+            <button id="backToLoginBtn" class="back-to-login">Back to Login</button>
+            <div id="twofaMessage"></div>
+            <div class="footer-note">&copy; 2026 Coinzara.org</div>
+        </div>
     </div>
+
     <script>
+        let pendingUserId = null;
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const data = { email: document.getElementById('email').value, password: document.getElementById('password').value };
-            const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('loginMessage');
+            
+            const res = await fetch('/api/login', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ email, password }) 
+            });
             const result = await res.json();
-            if (result.success) { 
+            
+            if (result.success) {
+                if (result.requires2FA) {
+                    pendingUserId = result.userId;
+                    document.getElementById('loginContainer').style.display = 'none';
+                    document.getElementById('twofaContainer').style.display = 'block';
+                    document.getElementById('twofaToken').value = '';
+                    document.getElementById('twofaMessage').innerHTML = '';
+                } else if (result.needsTerms) {
+                    window.location.href = '/terms-agreement';
+                } else {
+                    window.location.href = '/dashboard';
+                }
+            } else {
+                messageDiv.innerHTML = `<div class="error">${result.error}</div>`;
+            }
+        });
+                document.getElementById('verify2faBtn').addEventListener('click', async () => {
+            const token = document.getElementById('twofaToken').value;
+            const messageDiv = document.getElementById('twofaMessage');
+            
+            if (!token || token.length < 6) {
+                messageDiv.innerHTML = '<div class="error">Please enter a valid 6-digit code</div>';
+                return;
+            }
+            
+            const res = await fetch('/api/2fa/verify-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const result = await res.json();
+            
+            if (result.success) {
                 if (result.needsTerms) {
                     window.location.href = '/terms-agreement';
                 } else {
                     window.location.href = '/dashboard';
                 }
-            } else { 
-                document.getElementById('message').innerHTML = `<div class="error">${result.error}</div>`; 
+            } else {
+                messageDiv.innerHTML = `<div class="error">${result.error}</div>`;
             }
         });
-        document.getElementById('forgotBtn').addEventListener('click', () => { alert('Password reset requires security question verification. Contact support@coinzara.org'); });
+
+        document.getElementById('backToLoginBtn').addEventListener('click', () => {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('twofaContainer').style.display = 'none';
+            document.getElementById('twofaToken').value = '';
+            document.getElementById('twofaMessage').innerHTML = '';
+            pendingUserId = null;
+        });
+
+        document.getElementById('forgotBtn').addEventListener('click', () => { 
+            alert('Password reset requires security question verification. Contact support@coinzara.org'); 
+        });
     </script>
 </body>
 </html>

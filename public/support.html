@@ -45,7 +45,6 @@
         .footer-links a { color: #848E9C; text-decoration: none; }
         .footer-links a:hover { color: #F0B90B; }
         
-        /* Chat Widget */
         .chat-button { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background: #F0B90B; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; transition: transform 0.2s; }
         .chat-button:hover { transform: scale(1.05); }
         .chat-button span { font-size: 28px; font-weight: bold; color: #0B0E1A; }
@@ -93,6 +92,7 @@
                 <div class="faq-item"><div class="faq-question">How does AI trading work?</div><div class="faq-answer">Our AI bot trades 24/7 using advanced algorithms. Profits are added to your balance automatically.</div></div>
                 <div class="faq-item"><div class="faq-question">How do referral codes work?</div><div class="faq-answer">Share your unique referral code. When friends sign up and deposit, you earn bonus credits.</div></div>
                 <div class="faq-item"><div class="faq-question">Is there a fee on AI-generated profits?</div><div class="faq-answer">Yes, Coinzara charges a 10% fee on all AI-generated profits. For example, if the AI bot generates $100 in profit, a $10 fee will be applied. Your available balance will increase by $90, but your dashboard will still show the full $100 profit for transparency. This fee is clearly displayed in the withdrawal breakdown section.</div></div>
+                <div class="faq-item"><div class="faq-question">How do I enable Two-Factor Authentication (2FA)?</div><div class="faq-answer">1. Go to Settings page<br>2. Scroll to the Security section<br>3. Tap "Enable 2FA"<br>4. Scan the QR code with Aegis or Google Authenticator<br>5. Enter the 6-digit code to confirm<br><br>2FA adds an extra layer of security to your account. Once enabled, you'll need your authenticator app every time you login.</div></div>
             </div>
             <div class="contact-section"><h3>Need further assistance?</h3><p>Our support team is available to help</p><div class="email-box"><div class="email" id="supportEmail">support@coinzara.org</div></div><button onclick="copyEmail()">Copy Email Address</button></div>
             <button class="back-btn" onclick="location.href='/dashboard'">Back to Dashboard</button>
@@ -162,7 +162,6 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;

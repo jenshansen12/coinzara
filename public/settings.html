@@ -24,12 +24,17 @@
         .verified-badge { background: #0ECB8122; color: #0ECB81; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
         .copy-btn { background: #2B3139; color: #F0B90B; border: none; padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; margin-left: 8px; }
         .back-btn { background: #2B3139; color: #EAECEF; padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; }
+        .enable-2fa-btn { background: #0ECB81; color: #0B0E1A; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
+        .disable-2fa-btn { background: #F6465D; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
+        .twofa-status-enabled { color: #0ECB81; font-weight: 600; }
+        .twofa-status-disabled { color: #848E9C; font-weight: 600; }
+        .qr-container { text-align: center; margin: 20px 0; }
+        .qr-container img { background: white; padding: 10px; border-radius: 12px; }
         footer { text-align: center; padding: 24px; border-top: 1px solid #2B3139; color: #848E9C; font-size: 0.7rem; margin-top: 40px; }
         .footer-links { display: flex; justify-content: center; gap: 20px; margin-top: 8px; flex-wrap: wrap; }
         .footer-links a { color: #848E9C; text-decoration: none; }
         .footer-links a:hover { color: #F0B90B; }
         
-        /* Chat Widget */
         .chat-button { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; background: #F0B90B; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; transition: transform 0.2s; }
         .chat-button:hover { transform: scale(1.05); }
         .chat-button span { font-size: 28px; font-weight: bold; color: #0B0E1A; }
@@ -46,6 +51,16 @@
         .chat-input-area input { flex: 1; margin-bottom: 0; padding: 10px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; }
         .chat-input-area button { width: auto; padding: 10px 16px; margin: 0; }
         .chat-status { font-size: 0.7rem; color: #848E9C; text-align: center; padding: 8px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 5000; justify-content: center; align-items: center; }
+        .modal-content { background: #1E232C; max-width: 400px; width: 90%; border-radius: 16px; padding: 28px; border: 1px solid #2B3139; }
+        .modal-content h3 { color: #F0B90B; margin-bottom: 20px; text-align: center; }
+        .modal-content input { width: 100%; padding: 12px; background: #2B3139; border: 1px solid #434F5A; border-radius: 8px; color: #EAECEF; margin-bottom: 16px; }
+        .modal-buttons { display: flex; gap: 12px; margin-top: 8px; }
+        .modal-buttons button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .confirm-btn { background: #0ECB81; color: #0B0E1A; }
+        .cancel-btn { background: #2B3139; color: #EAECEF; }
+        
         @media (max-width: 768px) { .info-row { flex-direction: column; align-items: flex-start; gap: 8px; } .info-value { text-align: left; max-width: 100%; } .chat-widget { width: calc(100% - 48px); right: 24px; left: 24px; height: 70vh; } }
     </style>
 </head>
@@ -59,10 +74,10 @@
                 <a href="/withdraw">Withdraw</a>
                 <a href="/learn">Learn</a>
                 <a href="/news">News</a>
-                <a href="/history">History</a>
+                <a href="/transaction-history">History</a>
                 <a href="/settings">Settings</a>
                 <a href="/support">Support</a>
-                <a href="/reserves">Proof of Reserves</a>
+                <a href="/proof-of-reserves">Proof of Reserves</a>
                 <a href="#" id="logoutBtn">Logout</a>
             </div>
         </div>
@@ -71,6 +86,7 @@
     <div class="container">
         <h1>Account Settings</h1>
         <div class="subtitle">Manage your account information</div>
+        
         <div class="settings-card">
             <h3>Profile Information</h3>
             <div class="info-row"><span class="info-label">Full Name</span><span class="info-value" id="fullName">-</span></div>
@@ -79,17 +95,53 @@
             <div class="info-row"><span class="info-label">User ID</span><span class="info-value"><span id="userId">-</span><button class="copy-btn" onclick="copyText('userId')">Copy</button></span></div>
             <div class="info-row"><span class="info-label">Referral Code</span><span class="info-value"><span id="referralCode">-</span><button class="copy-btn" onclick="copyText('referralCode')">Copy</button></span></div>
         </div>
+        
         <div class="settings-card">
             <h3>Verification Status</h3>
             <div class="info-row"><span class="info-label">Email Verification</span><span class="info-value"><span id="verificationStatus" class="verified-badge">Verified</span></span></div>
             <div class="info-row"><span class="info-label">Account Created</span><span class="info-value" id="createdAt">-</span></div>
         </div>
+        
         <div class="settings-card">
             <h3>Security</h3>
             <div class="info-row"><span class="info-label">Security Question</span><span class="info-value" id="securityQuestion">-</span></div>
             <div class="info-row"><span class="info-label">Password</span><span class="info-value">··········</span></div>
+            <div class="info-row"><span class="info-label">Two-Factor Authentication (2FA)</span><span class="info-value"><span id="twofaStatus">Loading...</span></span></div>
+            <div id="twofaButtonContainer"></div>
         </div>
+        
         <button class="back-btn" onclick="location.href='/dashboard'">Back to Dashboard</button>
+    </div>
+
+    <!-- Enable 2FA Modal -->
+    <div id="enable2faModal" class="modal">
+        <div class="modal-content">
+            <h3>Enable Two-Factor Authentication</h3>
+            <p style="color:#848E9C; font-size:0.85rem; margin-bottom:16px;">Scan this QR code with Aegis or Google Authenticator:</p>
+            <div class="qr-container" id="qrContainer"></div>
+            <p style="color:#848E9C; font-size:0.75rem; margin-bottom:8px;">Or enter this code manually:</p>
+            <p id="manualCode" style="background:#2B3139; padding:8px; border-radius:8px; font-family:monospace; text-align:center; margin-bottom:16px;"></p>
+            <input type="text" id="enable2faToken" placeholder="Enter 6-digit code from authenticator" maxlength="6">
+            <div id="enable2faMsg" style="color:#F6465D; font-size:0.75rem; margin-bottom:12px;"></div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeEnable2faModal()">Cancel</button>
+                <button class="confirm-btn" onclick="confirmEnable2fa()">Verify & Enable</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disable 2FA Modal -->
+    <div id="disable2faModal" class="modal">
+        <div class="modal-content">
+            <h3>Disable Two-Factor Authentication</h3>
+            <p style="color:#848E9C; font-size:0.85rem; margin-bottom:16px;">Enter your 6-digit authenticator code to disable 2FA:</p>
+            <input type="text" id="disable2faToken" placeholder="Enter 6-digit code" maxlength="6">
+            <div id="disable2faMsg" style="color:#F6465D; font-size:0.75rem; margin-bottom:12px;"></div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" onclick="closeDisable2faModal()">Cancel</button>
+                <button class="confirm-btn" onclick="confirmDisable2fa()">Disable 2FA</button>
+            </div>
+        </div>
     </div>
 
     <div class="chat-button" id="chatButton"><span>💬</span></div>
@@ -104,15 +156,119 @@
         <p>&copy; 2026 Coinzara.org - AI Crypto Trading Platform</p>
         <div class="footer-links">
             <a href="/terms">Terms & Conditions</a>
-            <a href="/reserves">Proof of Reserves</a>
+            <a href="/proof-of-reserves">Proof of Reserves</a>
             <a href="/support">Support</a>
         </div>
     </footer>
 
     <script>
-        async function loadUserData() { const res = await fetch('/api/me'); const data = await res.json(); if (data.loggedIn) { document.getElementById('fullName').innerText = data.fullName; document.getElementById('email').innerText = data.email; document.getElementById('country').innerText = data.country || 'Not specified'; document.getElementById('userId').innerText = data.userId; document.getElementById('referralCode').innerText = data.referralCode || 'Generating...'; document.getElementById('createdAt').innerText = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Recently'; document.getElementById('securityQuestion').innerText = data.securityQuestion || 'Set during signup'; } else { window.location.href = '/login'; } }
+        let currentUserData = null;
+        let currentTempSecret = null;
+                async function loadUserData() { 
+            const res = await fetch('/api/me'); 
+            const data = await res.json(); 
+            if (data.loggedIn) { 
+                currentUserData = data;
+                document.getElementById('fullName').innerText = data.fullName; 
+                document.getElementById('email').innerText = data.email; 
+                document.getElementById('country').innerText = data.country || 'Not specified'; 
+                document.getElementById('userId').innerText = data.userId; 
+                document.getElementById('referralCode').innerText = data.referralCode || 'Generating...'; 
+                document.getElementById('createdAt').innerText = data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Recently'; 
+                document.getElementById('securityQuestion').innerText = data.securityQuestion || 'Set during signup';
+                
+                const twofaStatus = document.getElementById('twofaStatus');
+                const twofaButtonContainer = document.getElementById('twofaButtonContainer');
+                
+                if (data.twoFactorEnabled) {
+                    twofaStatus.innerHTML = '<span class="twofa-status-enabled">✓ Enabled</span>';
+                    twofaButtonContainer.innerHTML = '<button class="disable-2fa-btn" onclick="showDisable2faModal()">Disable 2FA</button>';
+                } else {
+                    twofaStatus.innerHTML = '<span class="twofa-status-disabled">✗ Disabled</span>';
+                    twofaButtonContainer.innerHTML = '<button class="enable-2fa-btn" onclick="startEnable2fa()">Enable 2FA</button>';
+                }
+            } else { 
+                window.location.href = '/login'; 
+            } 
+        }
         
-        function copyText(elementId) { const text = document.getElementById(elementId).innerText; navigator.clipboard.writeText(text); alert('Copied: ' + text); }
+        function copyText(elementId) { 
+            const text = document.getElementById(elementId).innerText; 
+            navigator.clipboard.writeText(text); 
+            alert('Copied: ' + text); 
+        }
+        
+        async function startEnable2fa() {
+            const res = await fetch('/api/2fa/generate', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                currentTempSecret = data.secret;
+                document.getElementById('qrContainer').innerHTML = `<img src="${data.qrCode}" alt="QR Code" style="width:200px; height:200px;">`;
+                document.getElementById('manualCode').innerText = data.secret;
+                document.getElementById('enable2faToken').value = '';
+                document.getElementById('enable2faMsg').innerHTML = '';
+                document.getElementById('enable2faModal').style.display = 'flex';
+            } else {
+                alert('Error generating 2FA secret: ' + data.error);
+            }
+        }
+        
+        async function confirmEnable2fa() {
+            const token = document.getElementById('enable2faToken').value;
+            if (!token || token.length < 6) {
+                document.getElementById('enable2faMsg').innerHTML = 'Please enter a valid 6-digit code';
+                return;
+            }
+            const res = await fetch('/api/2fa/enable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeEnable2faModal();
+                loadUserData();
+                alert('2FA has been enabled successfully!');
+            } else {
+                document.getElementById('enable2faMsg').innerHTML = data.error;
+            }
+        }
+        
+        function closeEnable2faModal() {
+            document.getElementById('enable2faModal').style.display = 'none';
+            currentTempSecret = null;
+        }
+        
+        function showDisable2faModal() {
+            document.getElementById('disable2faToken').value = '';
+            document.getElementById('disable2faMsg').innerHTML = '';
+            document.getElementById('disable2faModal').style.display = 'flex';
+        }
+        
+        function closeDisable2faModal() {
+            document.getElementById('disable2faModal').style.display = 'none';
+        }
+        
+        async function confirmDisable2fa() {
+            const token = document.getElementById('disable2faToken').value;
+            if (!token || token.length < 6) {
+                document.getElementById('disable2faMsg').innerHTML = 'Please enter a valid 6-digit code';
+                return;
+            }
+            const res = await fetch('/api/2fa/disable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeDisable2faModal();
+                loadUserData();
+                alert('2FA has been disabled.');
+            } else {
+                document.getElementById('disable2faMsg').innerHTML = data.error;
+            }
+        }
         
         function showLogoutConfirm() {
             const modal = document.createElement('div');
@@ -144,7 +300,6 @@
         
         document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); showLogoutConfirm(); });
         
-        // Chat Widget
         let isLoggedIn = false;
         let isSending = false;
         let isLoading = false;

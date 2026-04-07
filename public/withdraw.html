@@ -85,17 +85,17 @@
 
             <div class="input-group">
                 <label>Amount (USD)</label>
-                <input type="number" id="withdrawAmount" placeholder="Enter amount" step="0.01" min="10">
+                <input type="number" id="withdrawAmount" placeholder="Enter amount" step="0.01">
             </div>
 
             <div class="input-group">
                 <label>Network</label>
                 <select id="withdrawNetwork">
-                    <option value="BTC">Bitcoin (BTC) - Min 0.0005 BTC</option>
-                    <option value="ETH">Ethereum (ETH) - Min 0.01 ETH</option>
-                    <option value="BNB">BNB (BEP-20) - Min 0.05 BNB</option>
-                    <option value="SOL">Solana (SOL) - Min 0.1 SOL</option>
-                    <option value="TRON">Tron (TRX) - Min 50 TRX</option>
+                    <option value="BTC">Bitcoin (BTC)</option>
+                    <option value="ETH">Ethereum (ETH)</option>
+                    <option value="BNB">BNB (BEP-20)</option>
+                    <option value="SOL">Solana (SOL)</option>
+                    <option value="TRON">Tron (TRX)</option>
                 </select>
             </div>
 
@@ -106,7 +106,7 @@
 
             <button class="withdraw-btn" onclick="requestWithdrawal()">Request Withdrawal</button>
             <div id="withdrawMsg"></div>
-            <div class="info-text">Withdrawals are processed within 24-48 hours. Minimum withdrawal amounts vary by network.</div>
+            <div class="info-text">Withdrawals are processed within 24-48 hours.</div>
         </div>
 
         <button class="back-btn" onclick="location.href='/dashboard'">Back to Dashboard</button>
@@ -166,12 +166,10 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         let userData = null;
-        let tvWidget = null;
-        let performanceChart = null;
-                async function loadUserData() {
+        
+        async function loadUserData() {
             try {
                 const res = await fetch('/api/me');
                 const data = await res.json();
@@ -255,7 +253,7 @@
                 confirmMsg.innerHTML = `<div class="error" style="background:#F6465D22; color:#F6465D; padding:10px; border-radius:8px; margin-bottom:12px;">${data.error}</div>`; 
             } 
         }
-
+        
         function showLogoutConfirm() {
             const modal = document.createElement('div');
             modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;';
@@ -406,4 +404,3 @@
     </script>
 </body>
 </html>
-        
