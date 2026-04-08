@@ -451,6 +451,7 @@ app.post('/api/admin/add-deposit', async (req, res) => {
   await user.save();
   res.json({ success: true, newBalance: user.balance });
 });
+
 // ========== ADMIN - ADD WITHDRAWAL ==========
 app.post('/api/admin/add-withdrawal', async (req, res) => {
   const { adminEmail, adminPassword, userEmail, amount, reason } = req.body;
@@ -762,7 +763,6 @@ app.post('/api/request-withdrawal', async (req, res) => {
   
   res.json({ success: true, message: 'Withdrawal request submitted. Admin will process within 24-48 hours.' });
 });
-
 // ========== ADMIN - UPDATE PLATFORM STATS ==========
 app.post('/api/admin/update-stats', async (req, res) => {
   const { adminEmail, adminPassword, totalUserBalances, totalBTCHeld, totalETHHeld, totalBNBHeld, totalSOLHeld, totalTRONHeld, aiTradingVolume, totalTrades, monthlyReturn, historicalReserves } = req.body;
@@ -816,6 +816,22 @@ app.get('/api/admin/stats', async (req, res) => {
 app.get('/api/platform-stats', async (req, res) => {
   const stats = await PlatformStats.findOne();
   res.json({ success: true, stats });
+});
+
+// ========== ADMIN - DELETE WITHDRAWAL REQUEST ==========
+app.post('/api/admin/delete-withdrawal-request', async (req, res) => {
+  const { adminEmail, adminPassword, requestId } = req.body;
+  
+  if (adminEmail !== 'admin@coinzara.org' || adminPassword !== '419123') {
+    return res.json({ success: false, error: 'Admin access denied' });
+  }
+  
+  const result = await WithdrawalRequest.findByIdAndDelete(requestId);
+  if (!result) {
+    return res.json({ success: false, error: 'Request not found' });
+  }
+  
+  res.json({ success: true, message: 'Withdrawal request deleted' });
 });
 
 // ========== NEWS RSS FEED ENDPOINT ==========
@@ -936,4 +952,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Coinzara running on http://localhost:${PORT}`);
 });
-    
