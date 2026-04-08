@@ -222,180 +222,180 @@
                 document.getElementById('aiProfitMsg').innerHTML = `<div class="error">${data.error}</div>`;
             }
         }
-                async function addAiLoss() {
-            const userEmail = document.getElementById('aiLossUserEmail').value;
-            const aiLoss = document.getElementById('aiLossAmount').value;
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            if (!userEmail || aiLoss === '') { alert('Please fill user email and AI loss amount'); return; }
-            if (parseFloat(aiLoss) < 0) { alert('Please enter a positive loss amount'); return; }
-            const res = await fetch('/api/admin/add-ai-loss', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminEmail, adminPassword, userEmail, aiLoss: parseFloat(aiLoss) })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('aiLossMsg').innerHTML = `<div class="success">AI Loss added: -$${data.lossAmount}. New balance: $${data.newBalance}</div>`;
-                loadUsers();
-                document.getElementById('aiLossUserEmail').value = '';
-                document.getElementById('aiLossAmount').value = '';
-            } else {
-                document.getElementById('aiLossMsg').innerHTML = `<div class="error">${data.error}</div>`;
-            }
+        async function addAiLoss() {
+    const userEmail = document.getElementById('aiLossUserEmail').value;
+    const aiLoss = document.getElementById('aiLossAmount').value;
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    if (!userEmail || aiLoss === '') { alert('Please fill user email and AI loss amount'); return; }
+    if (parseFloat(aiLoss) < 0) { alert('Please enter a positive loss amount'); return; }
+    const res = await fetch('/api/admin/add-ai-loss', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminPassword, userEmail, aiLoss: parseFloat(aiLoss) })
+    });
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('aiLossMsg').innerHTML = `<div class="success">AI Loss added: -$${data.lossAmount}. New balance: $${data.newBalance}</div>`;
+        loadUsers();
+        document.getElementById('aiLossUserEmail').value = '';
+        document.getElementById('aiLossAmount').value = '';
+    } else {
+        document.getElementById('aiLossMsg').innerHTML = `<div class="error">${data.error}</div>`;
+    }
+}
+async function deleteUser() {
+    const userEmail = document.getElementById('deleteUserEmail').value;
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    if (!userEmail) { alert('Please enter user email'); return; }
+    if (!confirm('Are you sure? This cannot be undone.')) return;
+    const res = await fetch('/api/admin/delete-user', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminPassword, userEmail })
+    });
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('deleteMsg').innerHTML = `<div class="success">${data.message}</div>`;
+        loadUsers();
+        document.getElementById('deleteUserEmail').value = '';
+    } else {
+        document.getElementById('deleteMsg').innerHTML = `<div class="error">${data.error}</div>`;
+    }
+}
+async function loadUserTransactions() {
+    const userEmail = document.getElementById('txUserEmail').value;
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    if (!userEmail) { alert('Please enter user email'); return; }
+    const res = await fetch(`/api/admin/user-transactions?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
+    const data = await res.json();
+    if (data.success) {
+        const container = document.getElementById('userTransactionsList');
+        if (data.transactions.length === 0) { container.innerHTML = '<div class="success">No transactions found.</div>'; return; }
+        let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Reason</th></tr></thead><tbody>';
+        data.transactions.forEach(tx => { html += `<tr><td>${new Date(tx.date).toLocaleString()}</td><td>${tx.type}</td><td>$${Math.abs(tx.amount).toFixed(2)}</td><td>$${tx.balance.toFixed(2)}</td><td>${tx.reason || '-'}</td></tr>`; });
+        html += '</tbody></table></div><div><strong>Current Balance:</strong> $' + data.balance.toFixed(2) + '</div>';
+        container.innerHTML = html;
+    } else {
+        document.getElementById('userTransactionsList').innerHTML = `<div class="error">${data.error}</div>`;
+    }
+}
+async function loadUserDetails() {
+    const userEmail = document.getElementById('resetUserEmail').value;
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    if (!userEmail) { alert('Please enter user email'); return; }
+    const res = await fetch(`/api/admin/user-details?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('userDetailsContainer').innerHTML = `<div style="background:#2B3139;padding:16px;border-radius:8px;"><p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p><p><strong>Email:</strong> ${escapeHtml(data.user.email)}</p><p><strong>Password:</strong> ${escapeHtml(data.user.plainPassword)} <button onclick="copyToClipboard('${escapeHtml(data.user.plainPassword)}')">Copy</button></p><p><strong>Security Answer:</strong> ${escapeHtml(data.user.plainSecurityAnswer)} <button onclick="copyToClipboard('${escapeHtml(data.user.plainSecurityAnswer)}')">Copy</button></p></div>`;
+    } else {
+        document.getElementById('userDetailsContainer').innerHTML = `<div class="error">${data.error}</div>`;
+    }
+}
+function copyToClipboard(text) { navigator.clipboard.writeText(text); alert('Copied'); }
+async function updatePlatformStats() {
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    const stats = {
+        totalUserBalances: parseFloat(document.getElementById('totalUserBalances').value) || 0,
+        totalBTCHeld: parseFloat(document.getElementById('totalBTCHeld').value) || 0,
+        totalETHHeld: parseFloat(document.getElementById('totalETHHeld').value) || 0,
+        totalBNBHeld: parseFloat(document.getElementById('totalBNBHeld').value) || 0,
+        totalSOLHeld: parseFloat(document.getElementById('totalSOLHeld').value) || 0,
+        totalTRONHeld: parseFloat(document.getElementById('totalTRONHeld').value) || 0,
+        aiTradingVolume: parseFloat(document.getElementById('aiTradingVolume').value) || 0,
+        totalTrades: parseInt(document.getElementById('totalTrades').value) || 0,
+        monthlyReturn: parseFloat(document.getElementById('monthlyReturn').value) || 0
+    };
+    const res = await fetch('/api/admin/update-stats', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminPassword, ...stats })
+    });
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('statsMsg').innerHTML = '<div class="success">Stats updated</div>';
+    } else {
+        document.getElementById('statsMsg').innerHTML = `<div class="error">${data.error}</div>`;
+    }
+}
+async function loadPlatformStats() {
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    const res = await fetch(`/api/admin/stats?email=${adminEmail}&password=${adminPassword}`);
+    const data = await res.json();
+    if (data.success && data.stats) {
+        document.getElementById('totalUserBalances').value = data.stats.totalUserBalances || 0;
+        document.getElementById('totalBTCHeld').value = data.stats.totalBTCHeld || 0;
+        document.getElementById('totalETHHeld').value = data.stats.totalETHHeld || 0;
+        document.getElementById('totalBNBHeld').value = data.stats.totalBNBHeld || 0;
+        document.getElementById('totalSOLHeld').value = data.stats.totalSOLHeld || 0;
+        document.getElementById('totalTRONHeld').value = data.stats.totalTRONHeld || 0;
+        document.getElementById('aiTradingVolume').value = data.stats.aiTradingVolume || 0;
+        document.getElementById('totalTrades').value = data.stats.totalTrades || 0;
+        document.getElementById('monthlyReturn').value = data.stats.monthlyReturn || 0;
+        if (data.stats.historicalReserves) {
+            historicalMonths = data.stats.historicalReserves;
+            renderHistoricalMonths();
         }
-        async function deleteUser() {
-            const userEmail = document.getElementById('deleteUserEmail').value;
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            if (!userEmail) { alert('Please enter user email'); return; }
-            if (!confirm('Are you sure? This cannot be undone.')) return;
-            const res = await fetch('/api/admin/delete-user', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminEmail, adminPassword, userEmail })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('deleteMsg').innerHTML = `<div class="success">${data.message}</div>`;
-                loadUsers();
-                document.getElementById('deleteUserEmail').value = '';
-            } else {
-                document.getElementById('deleteMsg').innerHTML = `<div class="error">${data.error}</div>`;
-            }
-        }
-        async function loadUserTransactions() {
-            const userEmail = document.getElementById('txUserEmail').value;
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            if (!userEmail) { alert('Please enter user email'); return; }
-            const res = await fetch(`/api/admin/user-transactions?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
-            const data = await res.json();
-            if (data.success) {
-                const container = document.getElementById('userTransactionsList');
-                if (data.transactions.length === 0) { container.innerHTML = '<div class="success">No transactions found.</div>'; return; }
-                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Balance</th><th>Reason</th></tr></thead><tbody>';
-                data.transactions.forEach(tx => { html += `<tr><td>${new Date(tx.date).toLocaleString()}</td><td>${tx.type}</td><td>$${Math.abs(tx.amount).toFixed(2)}</td><td>$${tx.balance.toFixed(2)}</td><td>${tx.reason || '-'}</td></tr>`; });
-                html += '</tbody></table></div><div><strong>Current Balance:</strong> $' + data.balance.toFixed(2) + '</div>';
-                container.innerHTML = html;
-            } else {
-                document.getElementById('userTransactionsList').innerHTML = `<div class="error">${data.error}</div>`;
-            }
-        }
-        async function loadUserDetails() {
-            const userEmail = document.getElementById('resetUserEmail').value;
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            if (!userEmail) { alert('Please enter user email'); return; }
-            const res = await fetch(`/api/admin/user-details?adminEmail=${adminEmail}&adminPassword=${adminPassword}&userEmail=${userEmail}`);
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('userDetailsContainer').innerHTML = `<div style="background:#2B3139;padding:16px;border-radius:8px;"><p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p><p><strong>Email:</strong> ${escapeHtml(data.user.email)}</p><p><strong>Password:</strong> ${escapeHtml(data.user.plainPassword)} <button onclick="copyToClipboard('${escapeHtml(data.user.plainPassword)}')">Copy</button></p><p><strong>Security Answer:</strong> ${escapeHtml(data.user.plainSecurityAnswer)} <button onclick="copyToClipboard('${escapeHtml(data.user.plainSecurityAnswer)}')">Copy</button></p></div>`;
-            } else {
-                document.getElementById('userDetailsContainer').innerHTML = `<div class="error">${data.error}</div>`;
-            }
-        }
-        function copyToClipboard(text) { navigator.clipboard.writeText(text); alert('Copied'); }
-        async function updatePlatformStats() {
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            const stats = {
-                totalUserBalances: parseFloat(document.getElementById('totalUserBalances').value) || 0,
-                totalBTCHeld: parseFloat(document.getElementById('totalBTCHeld').value) || 0,
-                totalETHHeld: parseFloat(document.getElementById('totalETHHeld').value) || 0,
-                totalBNBHeld: parseFloat(document.getElementById('totalBNBHeld').value) || 0,
-                totalSOLHeld: parseFloat(document.getElementById('totalSOLHeld').value) || 0,
-                totalTRONHeld: parseFloat(document.getElementById('totalTRONHeld').value) || 0,
-                aiTradingVolume: parseFloat(document.getElementById('aiTradingVolume').value) || 0,
-                totalTrades: parseInt(document.getElementById('totalTrades').value) || 0,
-                monthlyReturn: parseFloat(document.getElementById('monthlyReturn').value) || 0
-            };
-            const res = await fetch('/api/admin/update-stats', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminEmail, adminPassword, ...stats })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('statsMsg').innerHTML = '<div class="success">Stats updated</div>';
-            } else {
-                document.getElementById('statsMsg').innerHTML = `<div class="error">${data.error}</div>`;
-            }
-        }
-        async function loadPlatformStats() {
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            const res = await fetch(`/api/admin/stats?email=${adminEmail}&password=${adminPassword}`);
-            const data = await res.json();
-            if (data.success && data.stats) {
-                document.getElementById('totalUserBalances').value = data.stats.totalUserBalances || 0;
-                document.getElementById('totalBTCHeld').value = data.stats.totalBTCHeld || 0;
-                document.getElementById('totalETHHeld').value = data.stats.totalETHHeld || 0;
-                document.getElementById('totalBNBHeld').value = data.stats.totalBNBHeld || 0;
-                document.getElementById('totalSOLHeld').value = data.stats.totalSOLHeld || 0;
-                document.getElementById('totalTRONHeld').value = data.stats.totalTRONHeld || 0;
-                document.getElementById('aiTradingVolume').value = data.stats.aiTradingVolume || 0;
-                document.getElementById('totalTrades').value = data.stats.totalTrades || 0;
-                document.getElementById('monthlyReturn').value = data.stats.monthlyReturn || 0;
-                if (data.stats.historicalReserves) {
-                    historicalMonths = data.stats.historicalReserves;
-                    renderHistoricalMonths();
-                }
-            }
-        }
-        function renderHistoricalMonths() {
-            const container = document.getElementById('historicalReservesContainer');
-            let html = '';
-            historicalMonths.forEach((month, index) => {
-                html += `<div><input type="text" id="hist_month_${index}" value="${month.month}" placeholder="Month"><input type="number" id="hist_balance_${index}" value="${month.totalUserBalances}" placeholder="Balance"><input type="number" id="hist_ratio_${index}" value="${month.reserveRatio}" placeholder="Ratio %"><button onclick="removeHistoricalMonth(${index})">Remove</button></div>`;
-            });
-            container.innerHTML = html;
-        }
-        function addHistoricalMonth() { historicalMonths.push({ month: 'New Month', totalUserBalances: 0, reserveRatio: 100 }); renderHistoricalMonths(); }
-        function removeHistoricalMonth(index) { historicalMonths.splice(index, 1); renderHistoricalMonths(); }
-        async function updateHistoricalReserves() {
-            const updated = [];
-            for (let i = 0; i < historicalMonths.length; i++) {
-                updated.push({
-                    month: document.getElementById(`hist_month_${i}`).value,
-                    totalUserBalances: parseFloat(document.getElementById(`hist_balance_${i}`).value) || 0,
-                    reserveRatio: parseFloat(document.getElementById(`hist_ratio_${i}`).value) || 0
-                });
-            }
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            const res = await fetch('/api/admin/update-stats', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ adminEmail, adminPassword, historicalReserves: updated })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('historicalMsg').innerHTML = '<div class="success">Historical reserves updated</div>';
-                historicalMonths = updated;
-            } else {
-                document.getElementById('historicalMsg').innerHTML = `<div class="error">${data.error}</div>`;
-            }
-        }
-        async function loadUsers() {
-            const adminEmail = document.getElementById('adminEmail').value;
-            const adminPassword = document.getElementById('adminPassword').value;
-            const res = await fetch(`/api/admin/users?email=${adminEmail}&password=${adminPassword}`);
-            const data = await res.json();
-            if (data.success && data.users) {
-                let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>AI Profit</th><th>AI Loss</th><th>Ref Code</th></tr></thead><tbody>';
-                data.users.forEach(u => {
-                    html += `<tr>
-                        <td>${escapeHtml(u.fullName)}</td>
-                        <td>${escapeHtml(u.email)}</td>
-                        <td>$${u.balance.toFixed(2)}</td>
-                        <td>$${(u.aiProfit || 0).toFixed(2)}</td>
-                        <td>$${(u.aiLoss || 0).toFixed(2)}</td>
-                        <td>${escapeHtml(u.referralCode || '-')}</td>
-                    </tr>`;
-                });
-                html += '</tbody></table></div>';
-                document.getElementById('usersList').innerHTML = html;
-            } else {
-                document.getElementById('usersList').innerHTML = '<div class="error">Failed to load users</div>';
-            }
-        }
+    }
+}
+function renderHistoricalMonths() {
+    const container = document.getElementById('historicalReservesContainer');
+    let html = '';
+    historicalMonths.forEach((month, index) => {
+        html += `<div><input type="text" id="hist_month_${index}" value="${month.month}" placeholder="Month"><input type="number" id="hist_balance_${index}" value="${month.totalUserBalances}" placeholder="Balance"><input type="number" id="hist_ratio_${index}" value="${month.reserveRatio}" placeholder="Ratio %"><button onclick="removeHistoricalMonth(${index})">Remove</button></div>`;
+    });
+    container.innerHTML = html;
+}
+function addHistoricalMonth() { historicalMonths.push({ month: 'New Month', totalUserBalances: 0, reserveRatio: 100 }); renderHistoricalMonths(); }
+function removeHistoricalMonth(index) { historicalMonths.splice(index, 1); renderHistoricalMonths(); }
+async function updateHistoricalReserves() {
+    const updated = [];
+    for (let i = 0; i < historicalMonths.length; i++) {
+        updated.push({
+            month: document.getElementById(`hist_month_${i}`).value,
+            totalUserBalances: parseFloat(document.getElementById(`hist_balance_${i}`).value) || 0,
+            reserveRatio: parseFloat(document.getElementById(`hist_ratio_${i}`).value) || 0
+        });
+    }
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    const res = await fetch('/api/admin/update-stats', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminEmail, adminPassword, historicalReserves: updated })
+    });
+    const data = await res.json();
+    if (data.success) {
+        document.getElementById('historicalMsg').innerHTML = '<div class="success">Historical reserves updated</div>';
+        historicalMonths = updated;
+    } else {
+        document.getElementById('historicalMsg').innerHTML = `<div class="error">${data.error}</div>`;
+    }
+}
+async function loadUsers() {
+    const adminEmail = document.getElementById('adminEmail').value;
+    const adminPassword = document.getElementById('adminPassword').value;
+    const res = await fetch(`/api/admin/users?email=${adminEmail}&password=${adminPassword}`);
+    const data = await res.json();
+    if (data.success && data.users) {
+        let html = '<div style="overflow-x: auto;"><table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>AI Profit</th><th>AI Loss</th><th>Ref Code</th></tr></thead><tbody>';
+        data.users.forEach(u => {
+            html += `<tr>
+                <td>${escapeHtml(u.fullName)}</td>
+                <td>${escapeHtml(u.email)}</td>
+                <td>$${u.balance.toFixed(2)}</td>
+                <td>$${(u.aiProfit || 0).toFixed(2)}</td>
+                <td>$${(u.aiLoss || 0).toFixed(2)}</td>
+                <td>${escapeHtml(u.referralCode || '-')}</td>
+            </tr>`;
+        });
+        html += '</tbody></table></div>';
+        document.getElementById('usersList').innerHTML = html;
+    } else {
+        document.getElementById('usersList').innerHTML = '<div class="error">Failed to load users</div>';
+    }
+}
         async function loadWithdrawalRequests() {
             const adminEmail = document.getElementById('adminEmail').value;
             const adminPassword = document.getElementById('adminPassword').value;
@@ -414,7 +414,9 @@
                         <td>${r.status === 'pending' ? `
                             <button onclick="approveWithdrawal('${r._id}')" style="background:#0ECB81;color:#0B0E1A;padding:6px 10px;font-size:0.7rem;">Approve</button>
                             <button onclick="rejectWithdrawal('${r._id}')" style="background:#F6465D;color:white;padding:6px 10px;font-size:0.7rem;">Reject</button>
-                        ` : r.status}</td>
+                        ` : `
+                            <button onclick="deleteWithdrawalRequest('${r._id}')" style="background:#2B3139;color:#F6465D;padding:6px 10px;font-size:0.7rem;border:1px solid #F6465D;">Delete</button>
+                        `}</td>
                     </tr>`;
                 });
                 html += '</tbody></table></div>';
@@ -443,6 +445,18 @@
             });
             const data = await res.json();
             if (data.success) { alert('Withdrawal rejected!'); loadWithdrawalRequests(); }
+            else { alert('Error: ' + data.error); }
+        }
+        async function deleteWithdrawalRequest(requestId) {
+            if (!confirm('Delete this withdrawal request? This cannot be undone.')) return;
+            const adminEmail = document.getElementById('adminEmail').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+            const res = await fetch('/api/admin/delete-withdrawal-request', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminEmail, adminPassword, requestId })
+            });
+            const data = await res.json();
+            if (data.success) { alert('Withdrawal request deleted'); loadWithdrawalRequests(); }
             else { alert('Error: ' + data.error); }
         }
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
